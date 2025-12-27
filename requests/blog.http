@@ -1,0 +1,188 @@
+### ============================================================
+### BLOG POSTS API REQUESTS
+### Base URL: http://localhost:8000/v1
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@authToken = YOUR_JWT_TOKEN_HERE
+
+### ============================================================
+### PUBLIC ROUTES (No Authentication Required)
+### ============================================================
+
+### Get all published blog posts
+GET {{baseUrl}}/blog
+Content-Type: application/json
+
+### With pagination
+GET {{baseUrl}}/blog?page=1&limit=10
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Blog posts fetched successfully",
+#     "data": {
+#         "posts": [
+#             {
+#                 "id": 1,
+#                 "title": "Community Development Update",
+#                 "slug": "community-development-update",
+#                 "excerpt": "Latest updates on our community projects...",
+#                 "featured_image": "https://example.com/blog1.jpg",
+#                 "category": "news",
+#                 "published_at": "2025-12-27T10:00:00.000000Z"
+#             }
+#         ],
+#         "pagination": {
+#             "page": 1,
+#             "limit": 10,
+#             "total": 25,
+#             "total_pages": 3
+#         }
+#     }
+# }
+
+###
+
+### Get featured blog posts
+GET {{baseUrl}}/blog/featured
+Content-Type: application/json
+
+### With limit
+GET {{baseUrl}}/blog/featured?limit=3
+Content-Type: application/json
+
+###
+
+### Get blog categories
+GET {{baseUrl}}/blog/categories
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Categories fetched successfully",
+#     "data": {
+#         "categories": ["news", "projects", "community", "events"]
+#     }
+# }
+
+###
+
+### Get single blog post by slug
+GET {{baseUrl}}/blog/community-development-update
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Blog post fetched successfully",
+#     "data": {
+#         "post": {
+#             "id": 1,
+#             "title": "Community Development Update",
+#             "slug": "community-development-update",
+#             "content": "Full article content here...",
+#             "featured_image": "https://example.com/blog1.jpg",
+#             "category": "news",
+#             "tags": ["community", "development"],
+#             "views": 150,
+#             "published_at": "2025-12-27T10:00:00.000000Z",
+#             "created_at": "2025-12-27T09:00:00.000000Z"
+#         }
+#     }
+# }
+
+###
+
+### ============================================================
+### ADMIN ROUTES (Requires web_admin role)
+### ============================================================
+
+### Get all blog posts (including drafts)
+GET {{baseUrl}}/admin/blog
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### With filters
+GET {{baseUrl}}/admin/blog?status=draft&category=news
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Get single blog post by ID
+GET {{baseUrl}}/admin/blog/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Create new blog post
+POST {{baseUrl}}/admin/blog
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "New Community Initiative",
+    "content": "We are excited to announce a new community initiative that will bring together local residents...",
+    "excerpt": "A new initiative for community development",
+    "featured_image": "https://example.com/new-post.jpg",
+    "category": "news",
+    "tags": ["community", "initiative", "development"],
+    "status": "draft"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Blog post created successfully",
+#     "data": {
+#         "post": {
+#             "id": 2,
+#             "title": "New Community Initiative",
+#             "slug": "new-community-initiative",
+#             ...
+#         }
+#     }
+# }
+
+###
+
+### Update blog post
+PUT {{baseUrl}}/admin/blog/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "Updated Title",
+    "content": "Updated content...",
+    "status": "published"
+}
+
+###
+
+### Publish blog post
+POST {{baseUrl}}/admin/blog/1/publish
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Blog post published successfully",
+#     "data": {
+#         "post": {...}
+#     }
+# }
+
+###
+
+### Delete blog post
+DELETE {{baseUrl}}/admin/blog/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###

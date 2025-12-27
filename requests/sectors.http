@@ -1,0 +1,150 @@
+### ============================================================
+### SECTORS API REQUESTS
+### Base URL: http://localhost:8000/v1
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@authToken = YOUR_JWT_TOKEN_HERE
+
+### ============================================================
+### PUBLIC ROUTES (No Authentication Required)
+### ============================================================
+
+### Get all active sectors
+GET {{baseUrl}}/sectors
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Sectors fetched successfully",
+#     "data": {
+#         "sectors": [
+#             {
+#                 "id": 1,
+#                 "name": "Education",
+#                 "slug": "education",
+#                 "description": "Schools, training centers, and educational programs",
+#                 "icon": "school",
+#                 "color": "#4CAF50",
+#                 "projects_count": 8
+#             },
+#             {
+#                 "id": 2,
+#                 "name": "Healthcare",
+#                 "slug": "healthcare",
+#                 "description": "Hospitals, clinics, and health initiatives",
+#                 "icon": "medical",
+#                 "color": "#2196F3",
+#                 "projects_count": 6
+#             }
+#         ]
+#     }
+# }
+
+###
+
+### Get single sector with projects
+GET {{baseUrl}}/sectors/education
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Sector fetched successfully",
+#     "data": {
+#         "sector": {
+#             "id": 1,
+#             "name": "Education",
+#             "slug": "education",
+#             "projects": [...]
+#         }
+#     }
+# }
+
+###
+
+### ============================================================
+### ADMIN ROUTES (Requires web_admin role)
+### ============================================================
+
+### Get all sectors (including inactive)
+GET {{baseUrl}}/admin/sectors
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Get single sector by ID
+GET {{baseUrl}}/admin/sectors/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Create new sector
+POST {{baseUrl}}/admin/sectors
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Water & Sanitation",
+    "description": "Water supply, drainage, and sanitation projects",
+    "icon": "water",
+    "color": "#00BCD4",
+    "display_order": 4,
+    "status": "active"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Sector created successfully",
+#     "data": {
+#         "sector": {
+#             "id": 4,
+#             "name": "Water & Sanitation",
+#             "slug": "water-sanitation",
+#             ...
+#         }
+#     }
+# }
+
+###
+
+### Update sector
+PUT {{baseUrl}}/admin/sectors/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Education & Training",
+    "description": "Updated description"
+}
+
+###
+
+### Reorder sectors
+PUT {{baseUrl}}/admin/sectors/reorder
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "order": [2, 1, 3, 4]
+}
+
+###
+
+### Delete sector
+DELETE {{baseUrl}}/admin/sectors/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response (if has projects):
+# {
+#     "success": false,
+#     "message": "Cannot delete sector with existing projects"
+# }
+
+###

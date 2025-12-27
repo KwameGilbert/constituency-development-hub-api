@@ -1,0 +1,113 @@
+### ============================================================
+### FAQS API REQUESTS
+### Base URL: http://localhost:8000/v1
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@authToken = YOUR_JWT_TOKEN_HERE
+
+### ============================================================
+### PUBLIC ROUTES (No Authentication Required)
+### ============================================================
+
+### Get all active FAQs
+GET {{baseUrl}}/faqs
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "FAQs fetched successfully",
+#     "data": {
+#         "faqs": [
+#             {
+#                 "id": 1,
+#                 "question": "How can I report an issue in my community?",
+#                 "answer": "You can report issues through our mobile app or by contacting your local field agent...",
+#                 "category": "general",
+#                 "display_order": 0
+#             }
+#         ]
+#     }
+# }
+
+###
+
+### Get FAQ categories
+GET {{baseUrl}}/faqs/categories
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Categories fetched successfully",
+#     "data": {
+#         "categories": ["general", "projects", "services", "contact"]
+#     }
+# }
+
+###
+
+### ============================================================
+### ADMIN ROUTES (Requires web_admin role)
+### ============================================================
+
+### Get all FAQs (including inactive)
+GET {{baseUrl}}/admin/faqs
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Get single FAQ
+GET {{baseUrl}}/admin/faqs/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Create new FAQ
+POST {{baseUrl}}/admin/faqs
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "question": "What projects is the constituency currently undertaking?",
+    "answer": "We are currently undertaking several development projects including road construction, school renovation, and water supply installation. Visit our Projects page for detailed information.",
+    "category": "projects",
+    "status": "active"
+}
+
+###
+
+### Update FAQ
+PUT {{baseUrl}}/admin/faqs/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "question": "Updated question?",
+    "answer": "Updated answer with more details...",
+    "status": "active"
+}
+
+###
+
+### Reorder FAQs
+PUT {{baseUrl}}/admin/faqs/reorder
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "order": [3, 1, 2, 4]
+}
+
+###
+
+### Delete FAQ
+DELETE {{baseUrl}}/admin/faqs/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###

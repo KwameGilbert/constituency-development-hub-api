@@ -1,0 +1,162 @@
+### ============================================================
+### PROJECTS API REQUESTS
+### Base URL: http://localhost:8000/v1
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@authToken = YOUR_JWT_TOKEN_HERE
+
+### ============================================================
+### PUBLIC ROUTES (No Authentication Required)
+### ============================================================
+
+### Get all projects
+GET {{baseUrl}}/projects
+Content-Type: application/json
+
+### With filters
+GET {{baseUrl}}/projects?status=ongoing&sector=1&page=1&limit=10
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Projects fetched successfully",
+#     "data": {
+#         "projects": [
+#             {
+#                 "id": 1,
+#                 "title": "School Renovation Project",
+#                 "slug": "school-renovation-project",
+#                 "description": "Complete renovation of the primary school...",
+#                 "location": "District Primary School",
+#                 "status": "ongoing",
+#                 "progress_percent": 65,
+#                 "budget": 50000.00,
+#                 "start_date": "2025-01-01",
+#                 "end_date": "2025-06-30",
+#                 "sector": {
+#                     "id": 1,
+#                     "name": "Education"
+#                 }
+#             }
+#         ],
+#         "pagination": {...}
+#     }
+# }
+
+###
+
+### Get featured projects
+GET {{baseUrl}}/projects/featured
+Content-Type: application/json
+
+### With limit
+GET {{baseUrl}}/projects/featured?limit=6
+Content-Type: application/json
+
+###
+
+### Get project statistics
+GET {{baseUrl}}/projects/stats
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Project statistics fetched successfully",
+#     "data": {
+#         "total": 25,
+#         "ongoing": 10,
+#         "completed": 12,
+#         "planning": 3,
+#         "by_sector": [
+#             {"id": 1, "name": "Education", "count": 8},
+#             {"id": 2, "name": "Healthcare", "count": 6},
+#             {"id": 3, "name": "Infrastructure", "count": 11}
+#         ]
+#     }
+# }
+
+###
+
+### Get single project by slug
+GET {{baseUrl}}/projects/school-renovation-project
+Content-Type: application/json
+
+###
+
+### ============================================================
+### ADMIN ROUTES (Requires web_admin or officer role)
+### ============================================================
+
+### Get all projects (admin view)
+GET {{baseUrl}}/admin/projects
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Get single project by ID
+GET {{baseUrl}}/admin/projects/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Create new project
+POST {{baseUrl}}/admin/projects
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "Road Construction - Phase 2",
+    "description": "Construction of 5km asphalt road connecting villages",
+    "sector_id": 3,
+    "location": "Akwamuman District",
+    "status": "planning",
+    "start_date": "2025-03-01",
+    "end_date": "2025-12-31",
+    "budget": 150000.00,
+    "contractor": "Ghana Road Works Ltd",
+    "contact_person": "John Mensah",
+    "contact_phone": "+233249973054",
+    "is_featured": true
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Project created successfully",
+#     "data": {
+#         "project": {
+#             "id": 2,
+#             "title": "Road Construction - Phase 2",
+#             "slug": "road-construction-phase-2",
+#             ...
+#         }
+#     }
+# }
+
+###
+
+### Update project
+PUT {{baseUrl}}/admin/projects/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "status": "ongoing",
+    "progress_percent": 25,
+    "spent": 12500.00
+}
+
+###
+
+### Delete project
+DELETE {{baseUrl}}/admin/projects/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###

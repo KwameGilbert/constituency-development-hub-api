@@ -1,0 +1,125 @@
+### ============================================================
+### CONTACT INFO API REQUESTS
+### Base URL: http://localhost:8000/v1
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@authToken = YOUR_JWT_TOKEN_HERE
+
+### ============================================================
+### PUBLIC ROUTES (No Authentication Required)
+### ============================================================
+
+### Get all contact information
+GET {{baseUrl}}/contact
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Contact information fetched successfully",
+#     "data": {
+#         "contacts": [
+#             {
+#                 "id": 1,
+#                 "type": "phone",
+#                 "label": "Main Office",
+#                 "value": "+233249973054",
+#                 "icon": "phone"
+#             },
+#             {
+#                 "id": 2,
+#                 "type": "email",
+#                 "label": "General Inquiries",
+#                 "value": "info@constituency.gov.gh",
+#                 "icon": "mail"
+#             },
+#             {
+#                 "id": 3,
+#                 "type": "address",
+#                 "label": "Head Office",
+#                 "value": "123 Main Street, District Capital",
+#                 "icon": "map-pin"
+#             },
+#             {
+#                 "id": 4,
+#                 "type": "social",
+#                 "label": "Facebook",
+#                 "value": "https://facebook.com/constituency",
+#                 "icon": "facebook"
+#             }
+#         ]
+#     }
+# }
+
+###
+
+### ============================================================
+### ADMIN ROUTES (Requires web_admin role)
+### ============================================================
+
+### Get all contact info (including inactive)
+GET {{baseUrl}}/admin/contact
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Get single contact info
+GET {{baseUrl}}/admin/contact/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Create new contact info
+POST {{baseUrl}}/admin/contact
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "type": "phone",
+    "label": "Emergency Hotline",
+    "value": "+233249973099",
+    "icon": "phone-call",
+    "description": "24/7 emergency contact line",
+    "display_order": 0,
+    "status": "active"
+}
+
+###
+
+### Create social media link
+POST {{baseUrl}}/admin/contact
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "type": "social",
+    "label": "Twitter",
+    "value": "https://twitter.com/constituency",
+    "icon": "twitter",
+    "status": "active"
+}
+
+###
+
+### Update contact info
+PUT {{baseUrl}}/admin/contact/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "value": "+233249973000",
+    "label": "Updated Label"
+}
+
+###
+
+### Delete contact info
+DELETE {{baseUrl}}/admin/contact/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###

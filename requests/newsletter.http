@@ -1,0 +1,114 @@
+### ============================================================
+### NEWSLETTER API REQUESTS
+### Base URL: http://localhost:8000/v1
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@authToken = YOUR_JWT_TOKEN_HERE
+
+### ============================================================
+### PUBLIC ROUTES (No Authentication Required)
+### ============================================================
+
+### Subscribe to newsletter
+POST {{baseUrl}}/newsletter/subscribe
+Content-Type: application/json
+
+{
+    "email": "subscriber@example.com",
+    "name": "John Doe"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Successfully subscribed to newsletter",
+#     "data": {
+#         "subscriber": {
+#             "email": "subscriber@example.com",
+#             "subscribed_at": "2025-12-27T12:00:00.000000Z"
+#         }
+#     }
+# }
+
+###
+
+### Unsubscribe from newsletter
+POST {{baseUrl}}/newsletter/unsubscribe
+Content-Type: application/json
+
+{
+    "email": "subscriber@example.com"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Successfully unsubscribed from newsletter"
+# }
+
+###
+
+### ============================================================
+### ADMIN ROUTES (Requires web_admin role)
+### ============================================================
+
+### Get all subscribers
+GET {{baseUrl}}/admin/newsletter
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### With pagination
+GET {{baseUrl}}/admin/newsletter?page=1&limit=20
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Subscribers fetched successfully",
+#     "data": {
+#         "subscribers": [
+#             {
+#                 "id": 1,
+#                 "email": "subscriber@example.com",
+#                 "name": "John Doe",
+#                 "status": "active",
+#                 "subscribed_at": "2025-12-27T12:00:00.000000Z"
+#             }
+#         ],
+#         "pagination": {
+#             "page": 1,
+#             "limit": 20,
+#             "total": 150,
+#             "total_pages": 8
+#         }
+#     }
+# }
+
+###
+
+### Export subscribers (CSV)
+GET {{baseUrl}}/admin/newsletter/export
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Subscribers exported successfully",
+#     "data": {
+#         "download_url": "https://example.com/exports/subscribers-2025-12-27.csv",
+#         "count": 150
+#     }
+# }
+
+###
+
+### Delete subscriber
+DELETE {{baseUrl}}/admin/newsletter/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###

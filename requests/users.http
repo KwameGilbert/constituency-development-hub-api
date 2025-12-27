@@ -1,0 +1,286 @@
+### ============================================================
+### USER MANAGEMENT API REQUESTS
+### Web Admins, Officers, and Agents
+### Base URL: http://localhost:8000/v1
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@authToken = YOUR_ADMIN_JWT_TOKEN_HERE
+
+### ============================================================
+### WEB ADMINS (Requires web_admin role)
+### ============================================================
+
+### Get all web admins
+GET {{baseUrl}}/admin/web-admins
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Web admins fetched successfully",
+#     "data": {
+#         "admins": [
+#             {
+#                 "id": 1,
+#                 "admin_level": "super_admin",
+#                 "title": "System Administrator",
+#                 "user": {
+#                     "id": 1,
+#                     "name": "Admin User",
+#                     "email": "admin@constituency.gov.gh",
+#                     "status": "active"
+#                 }
+#             }
+#         ]
+#     }
+# }
+
+###
+
+### Get single web admin
+GET {{baseUrl}}/admin/web-admins/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Create new web admin
+POST {{baseUrl}}/admin/web-admins
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "New Admin",
+    "email": "newadmin@constituency.gov.gh",
+    "phone": "+233249973054",
+    "admin_level": "admin",
+    "title": "Content Manager",
+    "permissions": ["manage_blog", "manage_events", "manage_faqs"]
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Web admin created successfully",
+#     "data": {
+#         "admin": {...},
+#         "generated_password": "Xp9#kL2mN@"
+#     }
+# }
+
+###
+
+### Update web admin
+PUT {{baseUrl}}/admin/web-admins/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "admin_level": "moderator",
+    "permissions": ["manage_blog"]
+}
+
+###
+
+### Delete web admin
+DELETE {{baseUrl}}/admin/web-admins/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### ============================================================
+### OFFICERS (Requires web_admin role)
+### ============================================================
+
+### Get all officers
+GET {{baseUrl}}/admin/officers
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Get single officer
+GET {{baseUrl}}/admin/officers/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Create new officer
+POST {{baseUrl}}/admin/officers
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Kofi Mensah",
+    "email": "kofi@constituency.gov.gh",
+    "phone": "+233249973055",
+    "employee_id": "OFF-2025-001",
+    "title": "District Officer",
+    "department": "Development",
+    "assigned_sectors": [1, 2, 3],
+    "can_manage_projects": true,
+    "can_approve_issues": true
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Officer created successfully",
+#     "data": {
+#         "officer": {...},
+#         "generated_password": "Yq8@mN3pR$"
+#     }
+# }
+
+###
+
+### Update officer
+PUT {{baseUrl}}/admin/officers/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "Senior District Officer",
+    "can_manage_agents": true
+}
+
+###
+
+### Delete officer
+DELETE {{baseUrl}}/admin/officers/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### ============================================================
+### AGENTS (Requires web_admin or officer role)
+### ============================================================
+
+### Get all agents
+GET {{baseUrl}}/admin/agents
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Get single agent
+GET {{baseUrl}}/admin/agents/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Create new agent
+POST {{baseUrl}}/admin/agents
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Ama Serwah",
+    "email": "ama@agents.constituency.gov.gh",
+    "phone": "+233249973056",
+    "supervisor_id": 1,
+    "assigned_communities": ["Village A", "Village B", "Town C"],
+    "id_type": "Ghana Card",
+    "id_number": "GHA-XXXXXXXXXX-X"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Agent created successfully",
+#     "data": {
+#         "agent": {
+#             "id": 1,
+#             "agent_code": "AGT-2025-0001",
+#             ...
+#         },
+#         "generated_password": "Zr7!oP4qS%"
+#     }
+# }
+
+###
+
+### Update agent
+PUT {{baseUrl}}/admin/agents/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "assigned_communities": ["Village A", "Village B", "Town C", "Town D"],
+    "status": "active"
+}
+
+###
+
+### Verify agent ID
+POST {{baseUrl}}/admin/agents/1/verify
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Agent verified successfully",
+#     "data": {
+#         "agent": {
+#             "id_verified": true,
+#             "id_verified_at": "2025-12-27T10:00:00.000000Z"
+#         }
+#     }
+# }
+
+###
+
+### Delete agent
+DELETE {{baseUrl}}/admin/agents/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### ============================================================
+### OFFICER DASHBOARD (Requires officer role)
+### ============================================================
+
+@officerToken = OFFICER_JWT_TOKEN_HERE
+
+### Get officer's assigned reports
+GET {{baseUrl}}/officer/reports
+Content-Type: application/json
+Authorization: Bearer {{officerToken}}
+
+###
+
+### Get officer's supervised agents
+GET {{baseUrl}}/officer/agents
+Content-Type: application/json
+Authorization: Bearer {{officerToken}}
+
+###
+
+### ============================================================
+### AGENT DASHBOARD (Requires agent role)
+### ============================================================
+
+@agentToken = AGENT_JWT_TOKEN_HERE
+
+### Get agent profile
+GET {{baseUrl}}/agent/profile
+Content-Type: application/json
+Authorization: Bearer {{agentToken}}
+
+###
+
+### Get agent's submitted reports
+GET {{baseUrl}}/agent/my-reports
+Content-Type: application/json
+Authorization: Bearer {{agentToken}}
+
+###

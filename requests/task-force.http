@@ -1,0 +1,306 @@
+### ============================================================
+### TASK FORCE API REQUESTS
+### Base URL: http://localhost:8000/v1
+### Issue Assessment & Resolution Workflow
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@authToken = YOUR_ADMIN_JWT_TOKEN_HERE
+@taskForceToken = TASK_FORCE_JWT_TOKEN_HERE
+
+### ============================================================
+### TASK FORCE DASHBOARD ROUTES (Requires task_force role)
+### ============================================================
+
+### Get task force member profile
+GET {{baseUrl}}/task-force/profile
+Content-Type: application/json
+Authorization: Bearer {{taskForceToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Profile fetched successfully",
+#     "data": {
+#         "member": {
+#             "id": 1,
+#             "employee_id": "TF-2025-0001",
+#             "title": "Field Technician",
+#             "specialization": "infrastructure",
+#             "id_verified": true,
+#             "assessments_completed": 15,
+#             "resolutions_completed": 12,
+#             "user": {
+#                 "id": 5,
+#                 "name": "Kwame Asante",
+#                 "email": "kwame@taskforce.gov.gh",
+#                 "phone": "+233249973054",
+#                 "status": "active"
+#             }
+#         }
+#     }
+# }
+
+###
+
+### Get assigned issues
+GET {{baseUrl}}/task-force/issues
+Content-Type: application/json
+Authorization: Bearer {{taskForceToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Assigned issues fetched successfully",
+#     "data": {
+#         "issues": [...],
+#         "stats": {
+#             "total_assigned": 5,
+#             "awaiting_assessment": 2,
+#             "awaiting_resolution": 1
+#         }
+#     }
+# }
+
+###
+
+### Start assessment on issue
+POST {{baseUrl}}/task-force/issues/1/start-assessment
+Content-Type: application/json
+Authorization: Bearer {{taskForceToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Assessment started",
+#     "data": {
+#         "issue": {
+#             "status": "assessment_in_progress"
+#         }
+#     }
+# }
+
+###
+
+### Submit assessment report
+POST {{baseUrl}}/task-force/issues/1/assessment
+Content-Type: application/json
+Authorization: Bearer {{taskForceToken}}
+
+{
+    "assessment_summary": "Visited site and confirmed major water pipe leak at the intersection. The pipe is approximately 30 years old and has corroded significantly.",
+    "findings": "1. Pipe diameter: 6 inches\n2. Leak type: Corrosion rupture\n3. Water loss: Approximately 1000 liters/hour\n4. Road damage: 5 meters affected",
+    "issue_confirmed": true,
+    "severity": "high",
+    "estimated_cost": 4500.00,
+    "estimated_duration": "3 days",
+    "required_resources": [
+        {"type": "material", "item": "6-inch PVC pipe", "quantity": 5, "unit": "meters"},
+        {"type": "material", "item": "Pipe fittings", "quantity": 4, "unit": "pieces"},
+        {"type": "equipment", "item": "Excavator", "quantity": 1, "unit": "day"},
+        {"type": "personnel", "item": "Plumbers", "quantity": 3, "unit": "persons"}
+    ],
+    "images": [
+        "https://example.com/assessment1.jpg",
+        "https://example.com/assessment2.jpg"
+    ],
+    "documents": ["https://example.com/site-report.pdf"],
+    "location_verified": "Main Street & Market Road Intersection - Confirmed",
+    "gps_coordinates": "5.6037, -0.1870",
+    "recommendations": "Recommend immediate repair before road damage worsens. Suggest temporary road closure during repair."
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Assessment report submitted successfully",
+#     "data": {
+#         "assessment": {
+#             "id": 1,
+#             "issue_report_id": 1,
+#             "assessment_summary": "...",
+#             "severity": "high",
+#             "status": "submitted",
+#             "created_at": "2025-12-27T14:00:00.000000Z"
+#         },
+#         "issue": {
+#             "status": "assessment_submitted"
+#         }
+#     }
+# }
+
+###
+
+### Start resolution work
+POST {{baseUrl}}/task-force/issues/1/start-resolution
+Content-Type: application/json
+Authorization: Bearer {{taskForceToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Resolution work started",
+#     "data": {
+#         "issue": {
+#             "status": "resolution_in_progress"
+#         }
+#     }
+# }
+
+###
+
+### Submit resolution report
+POST {{baseUrl}}/task-force/issues/1/resolution
+Content-Type: application/json
+Authorization: Bearer {{taskForceToken}}
+
+{
+    "resolution_summary": "Successfully replaced the damaged section of the water pipe. Road surface has been restored.",
+    "work_description": "1. Excavated 5m section of road\n2. Removed corroded 6-inch pipe section\n3. Installed new PVC pipe with proper fittings\n4. Tested for leaks - no issues\n5. Backfilled and compacted\n6. Applied temporary road surface\n7. Restored water supply to area",
+    "start_date": "2025-12-28",
+    "completion_date": "2025-12-30",
+    "actual_cost": 4200.00,
+    "resources_used": [
+        {"type": "material", "item": "6-inch PVC pipe", "quantity": 4, "unit": "meters"},
+        {"type": "material", "item": "Pipe fittings", "quantity": 3, "unit": "pieces"},
+        {"type": "equipment", "item": "Excavator", "quantity": 0.5, "unit": "day"},
+        {"type": "personnel", "item": "Plumbers", "quantity": 2, "unit": "persons"}
+    ],
+    "before_images": [
+        "https://example.com/before1.jpg",
+        "https://example.com/before2.jpg"
+    ],
+    "after_images": [
+        "https://example.com/after1.jpg",
+        "https://example.com/after2.jpg",
+        "https://example.com/after3.jpg"
+    ],
+    "documents": ["https://example.com/completion-report.pdf"],
+    "challenges_faced": "Heavy rain on second day delayed backfilling by 4 hours.",
+    "additional_notes": "Recommend full road resurfacing within 2 weeks for permanent fix.",
+    "requires_followup": true,
+    "followup_notes": "Schedule road resurfacing crew for permanent asphalt coating."
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Resolution report submitted successfully",
+#     "data": {
+#         "resolution": {
+#             "id": 1,
+#             "resolution_summary": "...",
+#             "actual_cost": 4200.00,
+#             "status": "submitted",
+#             "created_at": "2025-12-30T16:00:00.000000Z"
+#         },
+#         "issue": {
+#             "status": "resolution_submitted"
+#         }
+#     }
+# }
+
+###
+
+### ============================================================
+### ADMIN ROUTES - Task Force Management (Requires web_admin role)
+### ============================================================
+
+### Get all task force members
+GET {{baseUrl}}/admin/task-force
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### With filters
+GET {{baseUrl}}/admin/task-force?specialization=infrastructure&verified=true
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Get single task force member
+GET {{baseUrl}}/admin/task-force/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Create new task force member
+POST {{baseUrl}}/admin/task-force
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Ama Serwah",
+    "email": "ama@taskforce.gov.gh",
+    "phone": "+233249973055",
+    "title": "Water Systems Specialist",
+    "specialization": "water_sanitation",
+    "assigned_sectors": [4],
+    "skills": ["Plumbing", "Water Treatment", "Sanitation"],
+    "can_assess_issues": true,
+    "can_resolve_issues": true,
+    "can_request_resources": false,
+    "id_type": "Ghana Card",
+    "id_number": "GHA-XXXXXXXXXX-X",
+    "address": "123 Task Force Lane, Accra",
+    "emergency_contact_name": "Yaw Serwah",
+    "emergency_contact_phone": "+233249973056"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Task force member created successfully",
+#     "data": {
+#         "member": {
+#             "id": 2,
+#             "employee_id": "TF-2025-0002",
+#             ...
+#         },
+#         "generated_password": "Xp9#kL2mN@"
+#     }
+# }
+
+###
+
+### Update task force member
+PUT {{baseUrl}}/admin/task-force/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "Senior Field Technician",
+    "specialization": "general",
+    "can_request_resources": true,
+    "status": "active"
+}
+
+###
+
+### Verify task force member ID
+POST {{baseUrl}}/admin/task-force/1/verify
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Task force member verified successfully",
+#     "data": {
+#         "member": {
+#             "id_verified": true,
+#             "id_verified_at": "2025-12-27T10:00:00.000000Z"
+#         }
+#     }
+# }
+
+###
+
+### Delete task force member
+DELETE {{baseUrl}}/admin/task-force/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###

@@ -1,0 +1,287 @@
+### ============================================================
+### ISSUE REPORTS API REQUESTS
+### Base URL: http://localhost:8000/v1
+### Full Workflow: Submit → Review → Task Force → Resolution
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@authToken = YOUR_JWT_TOKEN_HERE
+@agentToken = AGENT_JWT_TOKEN_HERE
+@officerToken = OFFICER_JWT_TOKEN_HERE
+@taskForceToken = TASK_FORCE_JWT_TOKEN_HERE
+
+### ============================================================
+### AGENT ROUTES (Requires agent role)
+### ============================================================
+
+### Agent submit issue report
+POST {{baseUrl}}/agent/issues
+Content-Type: application/json
+Authorization: Bearer {{agentToken}}
+
+{
+    "title": "Broken Water Pipe on Main Street",
+    "description": "There is a major water pipe leak at the intersection of Main Street and Market Road. Water has been flowing for 3 days causing road damage.",
+    "category": "infrastructure",
+    "location": "Main Street & Market Road Intersection",
+    "latitude": 5.6037,
+    "longitude": -0.1870,
+    "images": ["https://example.com/leak1.jpg", "https://example.com/leak2.jpg"],
+    "reporter_name": "Kofi Mensah",
+    "reporter_phone": "+233249973054",
+    "priority": "high"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Issue report submitted successfully",
+#     "data": {
+#         "report": {
+#             "id": 1,
+#             "case_id": "ISS-20251227-A1B2",
+#             "title": "Broken Water Pipe on Main Street",
+#             "status": "submitted",
+#             "priority": "high",
+#             "created_at": "2025-12-27T12:00:00.000000Z"
+#         }
+#     }
+# }
+
+###
+
+### ============================================================
+### OFFICER ROUTES (Requires officer role)
+### ============================================================
+
+### Officer forward issue to admin
+PUT {{baseUrl}}/officer/issues/1/forward
+Content-Type: application/json
+Authorization: Bearer {{officerToken}}
+
+{
+    "notes": "Verified issue. Requires immediate attention from task force."
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Issue forwarded to admin successfully",
+#     "data": {
+#         "report": {
+#             "status": "forwarded_to_admin",
+#             "forwarded_to_admin_at": "2025-12-27T12:30:00.000000Z"
+#         }
+#     }
+# }
+
+###
+
+### ============================================================
+### ADMIN ROUTES (Requires web_admin or officer role)
+### ============================================================
+
+### Get all issue reports
+GET {{baseUrl}}/admin/issues
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### With filters
+GET {{baseUrl}}/admin/issues?status=forwarded_to_admin&priority=high&page=1&limit=10
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Issue reports fetched successfully",
+#     "data": {
+#         "reports": [...],
+#         "pagination": {...}
+#     }
+# }
+
+###
+
+### Get issue statistics
+GET {{baseUrl}}/admin/issues/stats
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Statistics fetched successfully",
+#     "data": {
+#         "total": 50,
+#         "pending": 15,
+#         "resolved": 30,
+#         "by_status": {
+#             "submitted": 5,
+#             "under_officer_review": 3,
+#             "forwarded_to_admin": 7,
+#             "assigned_to_task_force": 4,
+#             "assessment_in_progress": 2,
+#             "assessment_submitted": 1,
+#             "resources_allocated": 2,
+#             "resolution_in_progress": 3,
+#             "resolution_submitted": 1,
+#             "resolved": 20,
+#             "closed": 10
+#         },
+#         "by_priority": {
+#             "urgent": 5,
+#             "high": 15,
+#             "medium": 20,
+#             "low": 10
+#         }
+#     }
+# }
+
+###
+
+### Get issues awaiting admin action
+GET {{baseUrl}}/admin/issues/awaiting-action
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Issues awaiting action fetched successfully",
+#     "data": {
+#         "reports": [...],
+#         "counts": {
+#             "awaiting_assignment": 5,
+#             "awaiting_assessment_review": 2,
+#             "awaiting_resolution_review": 1
+#         }
+#     }
+# }
+
+###
+
+### Get single issue report
+GET {{baseUrl}}/admin/issues/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Update issue status
+PUT {{baseUrl}}/admin/issues/1/status
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "status": "under_officer_review",
+    "notes": "Assigned for initial review"
+}
+
+###
+
+### Assign issue to task force (Admin only)
+PUT {{baseUrl}}/admin/issues/1/assign-task-force
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "task_force_id": 1
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Issue assigned to task force successfully",
+#     "data": {
+#         "report": {
+#             "status": "assigned_to_task_force",
+#             "assigned_task_force_id": 1,
+#             "assigned_to_task_force_at": "2025-12-27T13:00:00.000000Z"
+#         }
+#     }
+# }
+
+###
+
+### Allocate resources (Admin only)
+PUT {{baseUrl}}/admin/issues/1/allocate-resources
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "budget": 5000.00,
+    "resources": [
+        {"type": "equipment", "item": "Pipe repair kit", "quantity": 2},
+        {"type": "personnel", "item": "Plumbers", "quantity": 3},
+        {"type": "material", "item": "PVC Pipes", "quantity": 10}
+    ]
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Resources allocated successfully",
+#     "data": {
+#         "report": {
+#             "status": "resources_allocated",
+#             "allocated_budget": 5000.00,
+#             "allocated_resources": [...],
+#             "resources_allocated_at": "2025-12-27T15:00:00.000000Z"
+#         }
+#     }
+# }
+
+###
+
+### Review assessment report (Admin only)
+PUT {{baseUrl}}/admin/issues/1/review-assessment
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "action": "approve",
+    "notes": "Assessment is thorough. Proceed with resource allocation."
+}
+
+### Actions: approve, reject, revision
+
+###
+
+### Review resolution report (Admin only)
+PUT {{baseUrl}}/admin/issues/1/review-resolution
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "action": "approve",
+    "notes": "Issue successfully resolved. Marking as complete."
+}
+
+### Expected Response (approve):
+# {
+#     "success": true,
+#     "message": "Resolution reviewed successfully",
+#     "data": {
+#         "resolution": {...},
+#         "report": {
+#             "status": "resolved",
+#             "resolved_at": "2025-12-27T18:00:00.000000Z"
+#         }
+#     }
+# }
+
+###
+
+### Add comment to issue
+POST {{baseUrl}}/admin/issues/1/comments
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "comment": "Task force has been notified and will begin assessment tomorrow.",
+    "is_internal": true
+}
+
+###

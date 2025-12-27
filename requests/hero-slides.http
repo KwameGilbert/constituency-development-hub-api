@@ -1,0 +1,146 @@
+### ============================================================
+### HERO SLIDES API REQUESTS
+### Base URL: http://localhost:8000/v1
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@authToken = YOUR_JWT_TOKEN_HERE
+
+### ============================================================
+### PUBLIC ROUTES (No Authentication Required)
+### ============================================================
+
+### Get all active hero slides
+GET {{baseUrl}}/hero-slides
+Content-Type: application/json
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Hero slides fetched successfully",
+#     "data": {
+#         "slides": [
+#             {
+#                 "id": 1,
+#                 "title": "Welcome to Our Constituency",
+#                 "subtitle": "Building a better community together",
+#                 "image": "https://example.com/slide1.jpg",
+#                 "cta_text": "Learn More",
+#                 "cta_link": "/about",
+#                 "display_order": 0
+#             }
+#         ]
+#     }
+# }
+
+###
+
+### ============================================================
+### ADMIN ROUTES (Requires web_admin role)
+### ============================================================
+
+### Get all hero slides (including inactive)
+GET {{baseUrl}}/admin/hero-slides
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Hero slides fetched successfully",
+#     "data": {
+#         "slides": [...]
+#     }
+# }
+
+###
+
+### Get single hero slide
+GET {{baseUrl}}/admin/hero-slides/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+###
+
+### Create new hero slide
+POST {{baseUrl}}/admin/hero-slides
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "New Development Project",
+    "subtitle": "Transforming our community infrastructure",
+    "image": "https://example.com/new-slide.jpg",
+    "cta_text": "View Projects",
+    "cta_link": "/projects",
+    "display_order": 1,
+    "status": "active"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Hero slide created successfully",
+#     "data": {
+#         "slide": {
+#             "id": 2,
+#             "title": "New Development Project",
+#             ...
+#         }
+#     }
+# }
+
+###
+
+### Update hero slide
+PUT {{baseUrl}}/admin/hero-slides/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "Updated Title",
+    "subtitle": "Updated subtitle",
+    "status": "active"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Hero slide updated successfully",
+#     "data": {
+#         "slide": {...}
+#     }
+# }
+
+###
+
+### Reorder hero slides
+PUT {{baseUrl}}/admin/hero-slides/reorder
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "order": [3, 1, 2]
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Hero slides reordered successfully"
+# }
+
+###
+
+### Delete hero slide
+DELETE {{baseUrl}}/admin/hero-slides/1
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Hero slide deleted successfully"
+# }
+
+###
