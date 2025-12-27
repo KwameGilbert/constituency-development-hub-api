@@ -57,16 +57,15 @@ class User extends Model
     const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';
 
-    // Roles
-    const ROLE_ADMIN = 'admin';
-    const ROLE_ORGANIZER = 'organizer';
-    const ROLE_ATTENDEE = 'attendee';
-    const ROLE_POS = 'pos';
-    const ROLE_SCANNER = 'scanner';
+    // Roles - Constituency Development Hub
+    const ROLE_WEB_ADMIN = 'web_admin';
+    const ROLE_OFFICER = 'officer';
+    const ROLE_AGENT = 'agent';
+    const ROLE_TASK_FORCE = 'task_force';
 
     // Status
     const STATUS_ACTIVE = 'active';
-    const STATUS_INACTIVE = 'inactive';
+    const STATUS_PENDING = 'pending';
     const STATUS_SUSPENDED = 'suspended';
 
     /**
@@ -117,7 +116,7 @@ class User extends Model
 
     /**
      * Auto-hash password with Argon2id on set.
-     * * @param string $value
+     * @param string $value
      * @return void
      */
     public function setPasswordAttribute($value)
@@ -142,7 +141,7 @@ class User extends Model
 
     /**
      * Get user by email.
-     * * @param string $email
+     * @param string $email
      * @return User|null
      */
     public static function findByEmail(string $email): ?User
@@ -152,7 +151,7 @@ class User extends Model
 
     /**
      * Check if email exists.
-     * * @param string $email Email to check
+     * @param string $email Email to check
      * @param int|null $excludeId Optional user ID to exclude (useful for updates)
      * @return bool
      */
@@ -169,20 +168,31 @@ class User extends Model
 
     /**
      * Get all active users.
-     * * @return \Illuminate\Database\Eloquent\Collection
+     * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function getActiveUsers()
     {
-        return static::where('status', 'active')->get();
+        return static::where('status', self::STATUS_ACTIVE)->get();
+    }
+
+    /**
+     * Get users by role.
+     * @param string $role
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function getByRole(string $role)
+    {
+        return static::where('role', $role)->get();
     }
 
     /* -----------------------------------------------------------------
-     |  Helper Methods
+     |  Helper Methods - Status Checks
      | -----------------------------------------------------------------
      */
 
     /**
      * Check if email is verified.
+     * @return bool
      */
     public function hasVerifiedEmail(): bool
     {
@@ -190,51 +200,228 @@ class User extends Model
     }
 
     /**
-     * Check if user is organizer.
-     */
-    public function isOrganizer(): bool
-    {
-        return $this->role === 'organizer';
-    }
-
-    /**
-     * Check if user is admin.
-     */
-    public function isAdmin(): bool
-    {
-        return $this->role === 'admin';
-    }
-
-    /**
      * Check if user is active.
+     * @return bool
      */
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    /**
+     * Check if user is pending.
+     * @return bool
+     */
+    public function isPending(): bool
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
+
+    /**
+     * Check if user is suspended.
+     * @return bool
+     */
+    public function isSuspended(): bool
+    {
+        return $this->status === self::STATUS_SUSPENDED;
     }
 
     /* -----------------------------------------------------------------
-     |  Relationships
+     |  Helper Methods - Role Checks (Constituency Hub Roles)
      | -----------------------------------------------------------------
      */
-    
-    public function organizer()
+
+    /**
+     * Check if user is a web admin.
+     * @return bool
+     */
+    public function isWebAdmin(): bool
     {
-        return $this->hasOne(Organizer::class, 'user_id');
+        return $this->role === self::ROLE_WEB_ADMIN;
     }
 
-    public function attendee()
+    /**
+     * Check if user is an officer.
+     * @return bool
+     */
+    public function isOfficer(): bool
     {
-        return $this->hasOne(Attendee::class, 'user_id');
+        return $this->role === self::ROLE_OFFICER;
     }
 
+    /**
+     * Check if user is an agent.
+     * @return bool
+     */
+    public function isAgent(): bool
+    {
+        return $this->role === self::ROLE_AGENT;
+    }
+
+    /**
+     * Check if user is staff (web_admin or officer).
+     * @return bool
+     */
+    public function isStaff(): bool
+    {
+        return in_array($this->role, [self::ROLE_WEB_ADMIN, self::ROLE_OFFICER]);
+    }
+
+    /* -----------------------------------------------------------------
+     |  Helper Methods - Role Checks
+     | -----------------------------------------------------------------
+     */
+
+    /**
+     * Check if user is task force member.
+     * @return bool
+     */
+    public function isTaskForce(): bool
+    {
+        return $this->role === self::ROLE_TASK_FORCE;
+    }
+
+    /* -----------------------------------------------------------------
+     |  Helper Methods - Profile Access
+     | -----------------------------------------------------------------
+     */
+
+    /**
+     * Get the role-specific profile for this user.
+     * @return WebAdmin|Officer|Agent|TaskForce|null
+     */
+    public function getRoleProfile()
+    {
+        return match($this->role) {
+            self::ROLE_WEB_ADMIN => $this->webAdmin,
+            self::ROLE_OFFICER => $this->officer,
+            self::ROLE_AGENT => $this->agent,
+            self::ROLE_TASK_FORCE => $this->taskForce,
+            default => null,
+        };
+    }
+
+    /**
+     * Get full user data with role profile.
+     * @return array
+     */
+    public function getFullProfile(): array
+    {
+        $profile = [
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'role' => $this->role,
+            'status' => $this->status,
+            'email_verified' => $this->email_verified,
+            'email_verified_at' => $this->email_verified_at?->toDateTimeString(),
+            'first_login' => $this->first_login,
+            'last_login_at' => $this->last_login_at?->toDateTimeString(),
+            'created_at' => $this->created_at?->toDateTimeString(),
+        ];
+
+        // Add role-specific profile
+        $roleProfile = $this->getRoleProfile();
+        if ($roleProfile) {
+            $profile['role_profile'] = $roleProfile->getPublicProfile();
+        }
+
+        return $profile;
+    }
+
+    /* -----------------------------------------------------------------
+     |  Relationships - Constituency Hub Roles
+     | -----------------------------------------------------------------
+     */
+
+    /**
+     * Get the web admin profile.
+     */
+    public function webAdmin()
+    {
+        return $this->hasOne(WebAdmin::class, 'user_id');
+    }
+
+    /**
+     * Get the officer profile.
+     */
+    public function officer()
+    {
+        return $this->hasOne(Officer::class, 'user_id');
+    }
+
+    /**
+     * Get the agent profile.
+     */
+    public function agent()
+    {
+        return $this->hasOne(Agent::class, 'user_id');
+    }
+
+    /**
+     * Get the task force profile.
+     */
+    public function taskForce()
+    {
+        return $this->hasOne(TaskForce::class, 'user_id');
+    }
+
+    /* -----------------------------------------------------------------
+     |  Relationships - Authentication & Logging
+     | -----------------------------------------------------------------
+     */
+
+    /**
+     * Get refresh tokens for this user.
+     */
     public function refreshTokens()
     {
         return $this->hasMany(RefreshToken::class);
     }
 
+    /**
+     * Get audit logs for this user.
+     */
     public function auditLogs()
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    /**
+     * Get email verification tokens for this user.
+     */
+    public function emailVerificationTokens()
+    {
+        return $this->hasMany(EmailVerificationToken::class);
+    }
+
+    /* -----------------------------------------------------------------
+     |  Relationships - Issue Reports (for agents/officers)
+     | -----------------------------------------------------------------
+     */
+
+    /**
+     * Get issue reports resolved by this user.
+     */
+    public function resolvedIssueReports()
+    {
+        return $this->hasMany(IssueReport::class, 'resolved_by');
+    }
+
+    /**
+     * Get issue report comments by this user.
+     */
+    public function issueReportComments()
+    {
+        return $this->hasMany(IssueReportComment::class, 'user_id');
+    }
+
+    /**
+     * Get issue report status changes by this user.
+     */
+    public function issueStatusChanges()
+    {
+        return $this->hasMany(IssueReportStatusHistory::class, 'changed_by');
     }
 }

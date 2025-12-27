@@ -6,49 +6,45 @@ return function ($app): void {
 
     // Map route prefixes to their router files
     // IMPORTANT: More specific prefixes MUST come before less specific ones
-    // e.g., '/v1/organizers/finance' must come before '/v1/organizers'
     $routeMap = [
         // Auth & Users
         '/v1/auth' => ROUTE . 'v1/AuthRoute.php',
         '/v1/users' => ROUTE . 'v1/UserRoute.php',
 
-        // Organizers (specific routes first)
-        '/v1/organizers/finance' => ROUTE . 'v1/PayoutRoute.php',
-        '/v1/organizers' => ROUTE . 'v1/OrganizerRoute.php',
-
-        // Attendees
-        '/v1/attendees' => ROUTE . 'v1/AttendeeRoute.php',
-
-        // Events & related
-        '/v1/event-images' => ROUTE . 'v1/EventImageRoute.php',
+        // Public CMS Routes
+        '/v1/hero-slides' => ROUTE . 'v1/HeroSlideRoute.php',
+        '/v1/blog' => ROUTE . 'v1/BlogPostRoute.php',
         '/v1/events' => ROUTE . 'v1/EventRoute.php',
+        '/v1/faqs' => ROUTE . 'v1/FAQRoute.php',
+        '/v1/sectors' => ROUTE . 'v1/SectorRoute.php',
+        '/v1/projects' => ROUTE . 'v1/ProjectRoute.php',
+        '/v1/stats' => ROUTE . 'v1/CommunityStatRoute.php',
+        '/v1/contact' => ROUTE . 'v1/ContactInfoRoute.php',
+        '/v1/newsletter' => ROUTE . 'v1/NewsletterRoute.php',
+        '/v1/issues' => ROUTE . 'v1/IssueReportRoute.php',
 
-        // Tickets
-        '/v1/ticket-types' => ROUTE . 'v1/TicketTypeRoute.php',
-        '/v1/tickets' => ROUTE . 'v1/TicketRoute.php',
+        // Role-specific dashboard routes
+        '/v1/officer' => ROUTE . 'v1/OfficerRoute.php',
+        '/v1/agent' => ROUTE . 'v1/AgentRoute.php',
+        '/v1/task-force' => ROUTE . 'v1/TaskForceRoute.php',
 
-        // Orders & Payments
-        '/v1/orders' => ROUTE . 'v1/OrderRoute.php',
-        '/v1/payment' => ROUTE . 'v1/OrderRoute.php', // Paystack webhook
+        // Admin routes (more specific first)
+        '/v1/admin/hero-slides' => ROUTE . 'v1/HeroSlideRoute.php',
+        '/v1/admin/blog' => ROUTE . 'v1/BlogPostRoute.php',
+        '/v1/admin/events' => ROUTE . 'v1/EventRoute.php',
+        '/v1/admin/faqs' => ROUTE . 'v1/FAQRoute.php',
+        '/v1/admin/sectors' => ROUTE . 'v1/SectorRoute.php',
+        '/v1/admin/projects' => ROUTE . 'v1/ProjectRoute.php',
+        '/v1/admin/stats' => ROUTE . 'v1/CommunityStatRoute.php',
+        '/v1/admin/contact' => ROUTE . 'v1/ContactInfoRoute.php',
+        '/v1/admin/newsletter' => ROUTE . 'v1/NewsletterRoute.php',
+        '/v1/admin/issues' => ROUTE . 'v1/IssueReportRoute.php',
+        '/v1/admin/web-admins' => ROUTE . 'v1/WebAdminRoute.php',
+        '/v1/admin/officers' => ROUTE . 'v1/OfficerRoute.php',
+        '/v1/admin/agents' => ROUTE . 'v1/AgentRoute.php',
+        '/v1/admin/task-force' => ROUTE . 'v1/TaskForceRoute.php',
 
-        // Scanners & POS
-        '/v1/scanners' => ROUTE . 'v1/ScannerRoute.php',
-        '/v1/pos' => ROUTE . 'v1/PosRoute.php',
 
-        // Awards & related
-        '/v1/award-categories' => ROUTE . 'v1/AwardCategoryRoute.php',
-        '/v1/awards' => ROUTE . 'v1/AwardRoute.php',
-        '/v1/nominees' => ROUTE . 'v1/AwardNomineeRoute.php',
-        '/v1/votes' => ROUTE . 'v1/AwardVoteRoute.php',
-
-        // Utils
-        '/v1/utils' => ROUTE . 'v1/UtilsRoute.php',
-
-        // Admin (specific routes first)
-        '/v1/admin/payouts' => ROUTE . 'v1/PayoutRoute.php',
-        '/v1/admin/analytics' => ROUTE . 'v1/AdminRoute.php',
-        '/v1/admin/settings' => ROUTE . 'v1/AdminRoute.php',
-        '/v1/admin' => ROUTE . 'v1/AdminRoute.php',
     ];
 
     $loadedFiles = [];

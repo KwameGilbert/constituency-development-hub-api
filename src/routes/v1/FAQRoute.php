@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-use App\Controllers\ConstituencyEventController;
+use App\Controllers\FAQController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\RoleMiddleware;
 use Slim\App;
 
 /**
- * Constituency Event Routes
+ * FAQ Routes
  * 
- * Community events
- * Prefix: /v1/events
+ * Frequently asked questions
+ * Prefix: /v1/faqs
  */
 
 return function (App $app) {
-    $controller = $app->getContainer()->get(ConstituencyEventController::class);
+    $controller = $app->getContainer()->get(FAQController::class);
     $authMiddleware = $app->getContainer()->get(AuthMiddleware::class);
 
     // Public routes
-    $app->get('/v1/events', [$controller, 'index']);
-    $app->get('/v1/events/upcoming', [$controller, 'upcoming']);
-    $app->get('/v1/events/{slug}', [$controller, 'showBySlug']);
+    $app->get('/v1/faqs', [$controller, 'index']);
+    $app->get('/v1/faqs/categories', [$controller, 'categories']);
 
     // Admin routes (require web_admin role)
-    $app->group('/v1/admin/events', function ($group) use ($controller) {
+    $app->group('/v1/admin/faqs', function ($group) use ($controller) {
         $group->get('', [$controller, 'adminIndex']);
-        $group->get('/{id:[0-9]+}', [$controller, 'show']);
+        $group->get('/{id}', [$controller, 'show']);
         $group->post('', [$controller, 'store']);
+        $group->put('/reorder', [$controller, 'reorder']);
         $group->put('/{id}', [$controller, 'update']);
         $group->delete('/{id}', [$controller, 'destroy']);
     })->add(new RoleMiddleware(['web_admin']))->add($authMiddleware);

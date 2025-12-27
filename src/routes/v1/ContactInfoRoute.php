@@ -2,31 +2,29 @@
 
 declare(strict_types=1);
 
-use App\Controllers\ConstituencyEventController;
+use App\Controllers\ContactInfoController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\RoleMiddleware;
 use Slim\App;
 
 /**
- * Constituency Event Routes
+ * Contact Info Routes
  * 
- * Community events
- * Prefix: /v1/events
+ * Contact details management
+ * Prefix: /v1/contact
  */
 
 return function (App $app) {
-    $controller = $app->getContainer()->get(ConstituencyEventController::class);
+    $controller = $app->getContainer()->get(ContactInfoController::class);
     $authMiddleware = $app->getContainer()->get(AuthMiddleware::class);
 
     // Public routes
-    $app->get('/v1/events', [$controller, 'index']);
-    $app->get('/v1/events/upcoming', [$controller, 'upcoming']);
-    $app->get('/v1/events/{slug}', [$controller, 'showBySlug']);
+    $app->get('/v1/contact', [$controller, 'index']);
 
     // Admin routes (require web_admin role)
-    $app->group('/v1/admin/events', function ($group) use ($controller) {
+    $app->group('/v1/admin/contact', function ($group) use ($controller) {
         $group->get('', [$controller, 'adminIndex']);
-        $group->get('/{id:[0-9]+}', [$controller, 'show']);
+        $group->get('/{id}', [$controller, 'show']);
         $group->post('', [$controller, 'store']);
         $group->put('/{id}', [$controller, 'update']);
         $group->delete('/{id}', [$controller, 'destroy']);

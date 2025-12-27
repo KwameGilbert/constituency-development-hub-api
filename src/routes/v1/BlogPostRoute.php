@@ -2,33 +2,35 @@
 
 declare(strict_types=1);
 
-use App\Controllers\ConstituencyEventController;
+use App\Controllers\BlogPostController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\RoleMiddleware;
 use Slim\App;
 
 /**
- * Constituency Event Routes
+ * Blog Post Routes
  * 
- * Community events
- * Prefix: /v1/events
+ * News and articles
+ * Prefix: /v1/blog
  */
 
 return function (App $app) {
-    $controller = $app->getContainer()->get(ConstituencyEventController::class);
+    $controller = $app->getContainer()->get(BlogPostController::class);
     $authMiddleware = $app->getContainer()->get(AuthMiddleware::class);
 
     // Public routes
-    $app->get('/v1/events', [$controller, 'index']);
-    $app->get('/v1/events/upcoming', [$controller, 'upcoming']);
-    $app->get('/v1/events/{slug}', [$controller, 'showBySlug']);
+    $app->get('/v1/blog', [$controller, 'index']);
+    $app->get('/v1/blog/featured', [$controller, 'featured']);
+    $app->get('/v1/blog/categories', [$controller, 'categories']);
+    $app->get('/v1/blog/{slug}', [$controller, 'showBySlug']);
 
     // Admin routes (require web_admin role)
-    $app->group('/v1/admin/events', function ($group) use ($controller) {
+    $app->group('/v1/admin/blog', function ($group) use ($controller) {
         $group->get('', [$controller, 'adminIndex']);
         $group->get('/{id:[0-9]+}', [$controller, 'show']);
         $group->post('', [$controller, 'store']);
         $group->put('/{id}', [$controller, 'update']);
+        $group->post('/{id}/publish', [$controller, 'publish']);
         $group->delete('/{id}', [$controller, 'destroy']);
     })->add(new RoleMiddleware(['web_admin']))->add($authMiddleware);
 };
