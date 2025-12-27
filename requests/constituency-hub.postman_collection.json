@@ -1,0 +1,1231 @@
+{
+    "info": {
+        "_postman_id": "constituency-development-hub-api",
+        "name": "Constituency Development Hub API",
+        "description": "API collection for the Constituency Development Hub - includes authentication, CMS, issue tracking, and user management endpoints.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000/v1",
+            "type": "string"
+        },
+        {
+            "key": "authToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "agentToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "officerToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "taskForceToken",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.data && jsonData.data.token) {",
+                                    "    pm.collectionVariables.set('authToken', jsonData.data.token);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@constituency.gov.gh\",\n    \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "me"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/logout",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Hero Slides",
+            "item": [
+                {
+                    "name": "Public - Get All Slides",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/hero-slides",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "hero-slides"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Get All Slides",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/hero-slides",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "hero-slides"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Create Slide",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Welcome to Our Constituency\",\n    \"subtitle\": \"Building a better future together\",\n    \"image\": \"https://example.com/slide.jpg\",\n    \"cta_text\": \"Learn More\",\n    \"cta_link\": \"/about\",\n    \"status\": \"active\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/hero-slides",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "hero-slides"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Update Slide",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Updated Title\",\n    \"status\": \"active\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/hero-slides/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "hero-slides",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Delete Slide",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/hero-slides/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "hero-slides",
+                                "1"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Blog Posts",
+            "item": [
+                {
+                    "name": "Public - Get Posts",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/blog?page=1&limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "blog"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Public - Get Featured",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/blog/featured",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "blog",
+                                "featured"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Public - Get By Slug",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/blog/post-slug-here",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "blog",
+                                "post-slug-here"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Get All Posts",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/blog",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "blog"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Create Post",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"New Blog Post\",\n    \"content\": \"Full article content here...\",\n    \"excerpt\": \"Brief summary\",\n    \"category\": \"news\",\n    \"status\": \"draft\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/blog",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "blog"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Publish Post",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/blog/1/publish",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "blog",
+                                "1",
+                                "publish"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Events",
+            "item": [
+                {
+                    "name": "Public - Get Events",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/events",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "events"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Public - Get Upcoming",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/events/upcoming",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "events",
+                                "upcoming"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Create Event",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Town Hall Meeting\",\n    \"description\": \"Monthly community meeting\",\n    \"location\": \"Community Center\",\n    \"event_date\": \"2025-01-15\",\n    \"start_time\": \"10:00\",\n    \"end_time\": \"12:00\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/events",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "events"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Projects",
+            "item": [
+                {
+                    "name": "Public - Get Projects",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/projects",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "projects"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Public - Get Stats",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/projects/stats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "projects",
+                                "stats"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Create Project",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Road Construction\",\n    \"description\": \"5km road project\",\n    \"sector_id\": 1,\n    \"location\": \"District Area\",\n    \"status\": \"planning\",\n    \"budget\": 50000\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/projects",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "projects"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Sectors",
+            "item": [
+                {
+                    "name": "Public - Get Sectors",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/sectors",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "sectors"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Create Sector",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Education\",\n    \"description\": \"Schools and training\",\n    \"icon\": \"school\",\n    \"color\": \"#4CAF50\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/sectors",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "sectors"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "FAQs",
+            "item": [
+                {
+                    "name": "Public - Get FAQs",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/faqs",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "faqs"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Create FAQ",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"question\": \"How do I report an issue?\",\n    \"answer\": \"Contact your local agent...\",\n    \"category\": \"general\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/faqs",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "faqs"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Community Stats",
+            "item": [
+                {
+                    "name": "Public - Get Stats",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/stats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "stats"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Create Stat",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"label\": \"Projects Completed\",\n    \"value\": \"45\",\n    \"icon\": \"check-circle\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/stats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "stats"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Contact Info",
+            "item": [
+                {
+                    "name": "Public - Get Contact",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/contact",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "contact"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Create Contact",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"type\": \"phone\",\n    \"label\": \"Main Office\",\n    \"value\": \"+233249973054\",\n    \"icon\": \"phone\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/contact",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "contact"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Newsletter",
+            "item": [
+                {
+                    "name": "Public - Subscribe",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"subscriber@example.com\",\n    \"name\": \"John Doe\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/newsletter/subscribe",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "newsletter",
+                                "subscribe"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Get Subscribers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/newsletter",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "newsletter"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Issue Reports",
+            "item": [
+                {
+                    "name": "Agent - Submit Issue",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{agentToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Broken Water Pipe\",\n    \"description\": \"Major leak on Main Street\",\n    \"category\": \"infrastructure\",\n    \"location\": \"Main Street\",\n    \"priority\": \"high\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/issues",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "agent",
+                                "issues"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Officer - Forward to Admin",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{officerToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"notes\": \"Verified. Needs immediate attention.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/officer/issues/1/forward",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "officer",
+                                "issues",
+                                "1",
+                                "forward"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Get All Issues",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Get Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/stats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "stats"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Assign to Task Force",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"task_force_id\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/1/assign-task-force",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "1",
+                                "assign-task-force"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Allocate Resources",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"budget\": 5000,\n    \"resources\": [{\"type\": \"material\", \"item\": \"Pipes\", \"quantity\": 10}]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/1/allocate-resources",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "1",
+                                "allocate-resources"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Task Force",
+            "item": [
+                {
+                    "name": "TF - Get Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{taskForceToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/task-force/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "task-force",
+                                "profile"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "TF - Get Assigned Issues",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{taskForceToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/task-force/issues",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "task-force",
+                                "issues"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "TF - Submit Assessment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{taskForceToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"assessment_summary\": \"Confirmed water pipe leak\",\n    \"issue_confirmed\": true,\n    \"severity\": \"high\",\n    \"estimated_cost\": 4500,\n    \"estimated_duration\": \"3 days\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/task-force/issues/1/assessment",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "task-force",
+                                "issues",
+                                "1",
+                                "assessment"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "TF - Submit Resolution",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{taskForceToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"resolution_summary\": \"Pipe replaced successfully\",\n    \"completion_date\": \"2025-12-30\",\n    \"actual_cost\": 4200\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/task-force/issues/1/resolution",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "task-force",
+                                "issues",
+                                "1",
+                                "resolution"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Get All Members",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/task-force",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "task-force"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Create Member",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Task Force Member\",\n    \"email\": \"tf@example.com\",\n    \"specialization\": \"infrastructure\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/task-force",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "task-force"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "User Management",
+            "item": [
+                {
+                    "name": "Admin - Get Web Admins",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/web-admins",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "web-admins"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Get Officers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/officers",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "officers"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin - Get Agents",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/agents",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "agents"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Officer - Get My Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{officerToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/officer/reports",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "officer",
+                                "reports"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Agent - Get My Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{agentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/my-reports",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "agent",
+                                "my-reports"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
