@@ -1,41 +1,71 @@
 {
     "info": {
-        "_postman_id": "constituency-development-hub-api",
-        "name": "Constituency Development Hub API",
-        "description": "API collection for the Constituency Development Hub - includes authentication, CMS, issue tracking, and user management endpoints.",
+        "_postman_id": "constituency-development-hub-api-v2",
+        "name": "Constituency Development Hub API v2",
+        "description": "Complete API documentation for the Constituency Development Hub. Includes Authentication, User Management, Issue Tracking, CMS, and Role-based workflows.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
         {
             "key": "baseUrl",
-            "value": "http://localhost:8000/v1",
+            "value": "http://localhost:8080/v1",
             "type": "string"
         },
         {
             "key": "authToken",
             "value": "",
             "type": "string"
-        },
-        {
-            "key": "agentToken",
-            "value": "",
-            "type": "string"
-        },
-        {
-            "key": "officerToken",
-            "value": "",
-            "type": "string"
-        },
-        {
-            "key": "taskForceToken",
-            "value": "",
-            "type": "string"
         }
     ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{authToken}}",
+                "type": "string"
+            }
+        ]
+    },
     "item": [
         {
-            "name": "Authentication",
+            "name": "1. Authentication",
+            "description": "User authentication endpoints including login, registration, password management, and email verification.",
             "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\",\n    \"role\": \"attendee\",\n    \"phone\": \"0244123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "description": "Register a new user account. Role can be: attendee, organizer, web_admin, officer, agent, task_force"
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"User registered successfully\",\n  \"data\": {\n    \"user\": {\"id\": 1, \"name\": \"John Doe\", \"email\": \"john@example.com\", \"role\": \"attendee\"},\n    \"access_token\": \"eyJ...\",\n    \"refresh_token\": \"abc123...\",\n    \"token_type\": \"Bearer\"\n  }\n}"
+                        }
+                    ]
+                },
                 {
                     "name": "Login",
                     "event": [
@@ -44,8 +74,8 @@
                             "script": {
                                 "exec": [
                                     "var jsonData = pm.response.json();",
-                                    "if(jsonData.data && jsonData.data.token) {",
-                                    "    pm.collectionVariables.set('authToken', jsonData.data.token);",
+                                    "if(jsonData.data && jsonData.data.access_token) {",
+                                    "    pm.collectionVariables.set('authToken', jsonData.data.access_token);",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -62,7 +92,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"email\": \"admin@constituency.gov.gh\",\n    \"password\": \"password123\"\n}"
+                            "raw": "{\n    \"email\": \"admin@constituency.gov.gh\",\n    \"password\": \"password\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/auth/login",
@@ -73,11 +103,53 @@
                                 "auth",
                                 "login"
                             ]
+                        },
+                        "description": "Login with email and password. Returns JWT access token and refresh token."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"user\": {\"id\": 1, \"name\": \"Admin\", \"email\": \"admin@constituency.gov.gh\", \"role\": \"web_admin\"},\n    \"access_token\": \"eyJ...\",\n    \"refresh_token\": \"abc123...\",\n    \"expires_in\": 3600,\n    \"token_type\": \"Bearer\"\n  }\n}"
                         }
-                    }
+                    ]
                 },
                 {
-                    "name": "Get Profile",
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"refresh_token\": \"your_refresh_token_here\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/refresh",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "refresh"
+                            ]
+                        },
+                        "description": "Get a new access token using a refresh token."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Token refreshed successfully\",\n  \"data\": {\n    \"access_token\": \"eyJ...\",\n    \"refresh_token\": \"new_refresh_token\",\n    \"expires_in\": 3600\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Profile (Me)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -95,8 +167,193 @@
                                 "auth",
                                 "me"
                             ]
+                        },
+                        "description": "Get the current authenticated user's profile."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Admin User\",\n    \"email\": \"admin@constituency.gov.gh\",\n    \"phone\": \"0244000000\",\n    \"role\": \"web_admin\",\n    \"status\": \"active\",\n    \"email_verified\": true\n  }\n}"
                         }
-                    }
+                    ]
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"current_password\": \"oldpassword\",\n    \"new_password\": \"newpassword123\",\n    \"logout_other_devices\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/password/change",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "password",
+                                "change"
+                            ]
+                        },
+                        "description": "Change the current user's password. Requires authentication."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Password changed successfully\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Forgot Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"user@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/password/forgot",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "password",
+                                "forgot"
+                            ]
+                        },
+                        "description": "Request a password reset email."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"If an account exists, a reset link has been sent.\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"token\": \"reset_token_from_email\",\n    \"email\": \"user@example.com\",\n    \"password\": \"newpassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/password/reset",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "password",
+                                "reset"
+                            ]
+                        },
+                        "description": "Reset password using token from email."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Password reset successfully\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Verify Email",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/verify-email?token=verification_token&email=user@example.com",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "verify-email"
+                            ],
+                            "query": [
+                                {
+                                    "key": "token",
+                                    "value": "verification_token"
+                                },
+                                {
+                                    "key": "email",
+                                    "value": "user@example.com"
+                                }
+                            ]
+                        },
+                        "description": "Verify email address using token from email."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Email verified successfully\",\n  \"data\": {\"email_verified\": true}\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Resend Verification Email",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"user@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/resend-verification",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "resend-verification"
+                            ]
+                        },
+                        "description": "Resend email verification link."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Verification email sent successfully\"\n}"
+                        }
+                    ]
                 },
                 {
                     "name": "Logout",
@@ -104,10 +361,18 @@
                         "method": "POST",
                         "header": [
                             {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
                                 "key": "Authorization",
                                 "value": "Bearer {{authToken}}"
                             }
                         ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"refresh_token\": \"your_refresh_token\"\n}"
+                        },
                         "url": {
                             "raw": "{{baseUrl}}/auth/logout",
                             "host": [
@@ -117,31 +382,25 @@
                                 "auth",
                                 "logout"
                             ]
+                        },
+                        "description": "Logout and invalidate refresh token."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Logged out successfully\"\n}"
                         }
-                    }
+                    ]
                 }
             ]
         },
         {
-            "name": "Hero Slides",
+            "name": "2. Officers",
+            "description": "Officer management and dashboard endpoints.",
             "item": [
                 {
-                    "name": "Public - Get All Slides",
-                    "request": {
-                        "method": "GET",
-                        "url": {
-                            "raw": "{{baseUrl}}/hero-slides",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "hero-slides"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin - Get All Slides",
+                    "name": "Dashboard - My Reports",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -151,80 +410,200 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{baseUrl}}/admin/hero-slides",
+                            "raw": "{{baseUrl}}/officer/reports",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "officer",
+                                "reports"
+                            ]
+                        },
+                        "description": "Get reports assigned to the logged-in officer. Requires officer role."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"reports\": [{\"id\": 1, \"case_id\": \"ISS-001\", \"title\": \"Pothole\", \"status\": \"under_officer_review\"}]\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Dashboard - My Agents",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/officer/agents",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "officer",
+                                "agents"
+                            ]
+                        },
+                        "description": "Get agents supervised by this officer."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"agents\": [{\"id\": 1, \"agent_code\": \"AGT-001\", \"user\": {\"name\": \"Agent Kwame\"}}]\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - List All Officers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/officers?department=Infrastructure",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
                                 "admin",
-                                "hero-slides"
+                                "officers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "department",
+                                    "value": "Infrastructure",
+                                    "description": "Optional filter by department"
+                                }
                             ]
+                        },
+                        "description": "List all officers. Requires web_admin role."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"officers\": [{\"id\": 1, \"employee_id\": \"OFF-001\", \"title\": \"Senior Officer\", \"department\": \"Infrastructure\", \"user\": {\"name\": \"James\", \"email\": \"james@gov.gh\"}}]\n  }\n}"
                         }
-                    }
+                    ]
                 },
                 {
-                    "name": "Admin - Create Slide",
+                    "name": "Admin - Get Officer",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/officers/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "officers",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"officer\": {\"id\": 1, \"employee_id\": \"OFF-001\", \"title\": \"Senior Officer\", \"department\": \"Infrastructure\"}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Create Officer",
                     "request": {
                         "method": "POST",
                         "header": [
                             {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"title\": \"Welcome to Our Constituency\",\n    \"subtitle\": \"Building a better future together\",\n    \"image\": \"https://example.com/slide.jpg\",\n    \"cta_text\": \"Learn More\",\n    \"cta_link\": \"/about\",\n    \"status\": \"active\"\n}"
+                            "raw": "{\n    \"name\": \"Officer James\",\n    \"email\": \"james@constituency.gov.gh\",\n    \"phone\": \"0201234567\",\n    \"title\": \"Senior Officer\",\n    \"department\": \"Infrastructure\",\n    \"assigned_sectors\": [\"roads\", \"buildings\"],\n    \"assigned_locations\": [\"East District\"],\n    \"can_manage_projects\": true,\n    \"can_manage_reports\": true,\n    \"can_manage_events\": false,\n    \"can_publish_content\": false,\n    \"bio\": \"Experienced infrastructure officer\",\n    \"office_location\": \"Building A, Room 5\",\n    \"office_phone\": \"030123456\"\n}"
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/admin/hero-slides",
+                            "raw": "{{baseUrl}}/admin/officers",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
                                 "admin",
-                                "hero-slides"
+                                "officers"
                             ]
+                        },
+                        "description": "Create a new officer. Password is auto-generated and returned. Requires web_admin role."
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Officer created successfully\",\n  \"data\": {\n    \"officer\": {\"id\": 2, \"employee_id\": \"OFF-002\"},\n    \"generated_password\": \"xK9#mPq2Lz\"\n  }\n}"
                         }
-                    }
+                    ]
                 },
                 {
-                    "name": "Admin - Update Slide",
+                    "name": "Admin - Update Officer",
                     "request": {
                         "method": "PUT",
                         "header": [
                             {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"title\": \"Updated Title\",\n    \"status\": \"active\"\n}"
+                            "raw": "{\n    \"name\": \"Officer James Updated\",\n    \"title\": \"Chief Officer\",\n    \"department\": \"Planning\",\n    \"status\": \"active\"\n}"
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/admin/hero-slides/1",
+                            "raw": "{{baseUrl}}/admin/officers/1",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
                                 "admin",
-                                "hero-slides",
+                                "officers",
                                 "1"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Officer updated successfully\"\n}"
+                        }
+                    ]
                 },
                 {
-                    "name": "Admin - Delete Slide",
+                    "name": "Admin - Delete Officer",
                     "request": {
                         "method": "DELETE",
                         "header": [
@@ -234,29 +613,1096 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{baseUrl}}/admin/hero-slides/1",
+                            "raw": "{{baseUrl}}/admin/officers/1",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
                                 "admin",
-                                "hero-slides",
+                                "officers",
                                 "1"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Officer deleted successfully\"\n}"
+                        }
+                    ]
                 }
             ]
         },
         {
-            "name": "Blog Posts",
+            "name": "3. Agents",
+            "description": "Field agent management and dashboard endpoints.",
             "item": [
                 {
-                    "name": "Public - Get Posts",
+                    "name": "Dashboard - Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "agent",
+                                "profile"
+                            ]
+                        },
+                        "description": "Get the logged-in agent's profile. Requires agent role."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"agent\": {\"id\": 1, \"agent_code\": \"AGT-001\", \"assigned_location\": \"East Legon\", \"reports_submitted\": 15}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Dashboard - My Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/my-reports",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "agent",
+                                "my-reports"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"reports\": [{\"id\": 1, \"case_id\": \"ISS-001\", \"title\": \"Drainage Issue\", \"status\": \"submitted\"}],\n    \"total_submitted\": 15\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Dashboard - Submit Issue",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Drainage Blockage\",\n    \"description\": \"Main drain blocked by debris near the market.\",\n    \"location\": \"Market Circle, East Legon\",\n    \"latitude\": 5.6037,\n    \"longitude\": -0.1870,\n    \"category\": \"sanitation\",\n    \"priority\": \"high\",\n    \"images\": [\"https://example.com/image1.jpg\"],\n    \"reporter_name\": \"Community Leader\",\n    \"reporter_phone\": \"0244000000\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/agent/issues",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "agent",
+                                "issues"
+                            ]
+                        },
+                        "description": "Submit a new issue report as an agent. Requires agent role."
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Issue report submitted successfully\",\n  \"data\": {\n    \"report\": {\"id\": 5, \"case_id\": \"ISS-20231227-005\", \"status\": \"submitted\"}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - List All Agents",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/agents?location=East Legon&verified=true&supervisor=1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "agents"
+                            ],
+                            "query": [
+                                {
+                                    "key": "location",
+                                    "value": "East Legon"
+                                },
+                                {
+                                    "key": "verified",
+                                    "value": "true"
+                                },
+                                {
+                                    "key": "supervisor",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"agents\": [{\"id\": 1, \"agent_code\": \"AGT-001\", \"assigned_location\": \"East Legon\", \"id_verified\": true}]\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Create Agent",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Agent Kwaku\",\n    \"email\": \"kwaku@agent.com\",\n    \"phone\": \"0277777777\",\n    \"supervisor_id\": 1,\n    \"assigned_communities\": [\"Community A\", \"Community B\"],\n    \"assigned_location\": \"East Legon\",\n    \"can_submit_reports\": true,\n    \"can_collect_data\": true,\n    \"can_register_residents\": false,\n    \"id_type\": \"national_id\",\n    \"id_number\": \"GHA-123456789\",\n    \"address\": \"123 Main Street\",\n    \"emergency_contact_name\": \"Jane Doe\",\n    \"emergency_contact_phone\": \"0244000000\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/agents",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "agents"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"agent\": {\"id\": 1, \"agent_code\": \"AGT-001\"},\n    \"generated_password\": \"aB3$kLm9Xp\"\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Update Agent",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Agent Kwaku Updated\",\n    \"assigned_location\": \"West Legon\",\n    \"status\": \"active\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/agents/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "agents",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Agent updated successfully\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Verify Agent",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/agents/1/verify",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "agents",
+                                "1",
+                                "verify"
+                            ]
+                        },
+                        "description": "Verify an agent's ID and activate their account."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Agent verified successfully\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Delete Agent",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/agents/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "agents",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Agent deleted successfully\"\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "4. Task Force",
+            "description": "Task force member management and issue resolution workflow.",
+            "item": [
+                {
+                    "name": "Dashboard - Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/task-force/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "task-force",
+                                "profile"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"member\": {\"id\": 1, \"employee_id\": \"TF-001\", \"specialization\": \"plumbing\", \"assessments_completed\": 10}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Dashboard - My Issues",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/task-force/issues",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "task-force",
+                                "issues"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"issues\": [{\"id\": 1, \"case_id\": \"ISS-001\", \"title\": \"Broken Pipe\", \"status\": \"assigned_to_task_force\"}],\n    \"stats\": {\"total_assigned\": 5, \"awaiting_assessment\": 2, \"awaiting_resolution\": 1}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Dashboard - Start Assessment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/task-force/issues/1/start-assessment",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "task-force",
+                                "issues",
+                                "1",
+                                "start-assessment"
+                            ]
+                        },
+                        "description": "Mark assessment as started for an assigned issue."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Assessment started\",\n  \"data\": {\"issue\": {\"status\": \"assessment_in_progress\"}}\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Dashboard - Submit Assessment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"assessment_summary\": \"Verified the issue. Main water pipeline is broken and needs replacement.\",\n    \"findings\": \"Pipeline corroded due to age. Leak affecting 3 households.\",\n    \"issue_confirmed\": true,\n    \"severity\": \"high\",\n    \"estimated_cost\": 5000,\n    \"estimated_duration\": \"3 days\",\n    \"required_resources\": \"Pipes, Excavator, 3 laborers\",\n    \"location_verified\": true,\n    \"gps_coordinates\": \"5.6037,-0.1870\",\n    \"recommendations\": \"Replace entire section. Consider upgrading pipe material.\",\n    \"images\": [\"https://example.com/assessment1.jpg\"]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/task-force/issues/1/assessment",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "task-force",
+                                "issues",
+                                "1",
+                                "assessment"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Assessment report submitted successfully\",\n  \"data\": {\n    \"assessment\": {\"id\": 1, \"status\": \"submitted\"},\n    \"issue\": {\"status\": \"assessment_submitted\"}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Dashboard - Start Resolution",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/task-force/issues/1/start-resolution",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "task-force",
+                                "issues",
+                                "1",
+                                "start-resolution"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Resolution work started\",\n  \"data\": {\"issue\": {\"status\": \"resolution_in_progress\"}}\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Dashboard - Submit Resolution",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"resolution_summary\": \"Pipe replaced successfully. Water supply restored.\",\n    \"work_description\": \"Excavated area, removed corroded pipe, installed new PVC pipe, backfilled and compacted.\",\n    \"start_date\": \"2023-12-25\",\n    \"completion_date\": \"2023-12-27\",\n    \"actual_cost\": 4800,\n    \"resources_used\": \"20m PVC pipe, 2 elbows, gravel\",\n    \"before_images\": [\"https://example.com/before.jpg\"],\n    \"after_images\": [\"https://example.com/after.jpg\"],\n    \"challenges_faced\": \"Rock encountered during excavation\",\n    \"requires_followup\": false\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/task-force/issues/1/resolution",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "task-force",
+                                "issues",
+                                "1",
+                                "resolution"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Resolution report submitted successfully\",\n  \"data\": {\n    \"resolution\": {\"id\": 1, \"status\": \"submitted\"},\n    \"issue\": {\"status\": \"resolution_submitted\"}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - List Task Force",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/task-force?specialization=plumbing&verified=true",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "task-force"
+                            ],
+                            "query": [
+                                {
+                                    "key": "specialization",
+                                    "value": "plumbing"
+                                },
+                                {
+                                    "key": "verified",
+                                    "value": "true"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"members\": [{\"id\": 1, \"employee_id\": \"TF-001\", \"specialization\": \"plumbing\"}]\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Create Task Force Member",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Engineer Kofi\",\n    \"email\": \"kofi@taskforce.com\",\n    \"phone\": \"0268888888\",\n    \"title\": \"Plumbing Expert\",\n    \"specialization\": \"plumbing\",\n    \"assigned_sectors\": [\"water\", \"sanitation\"],\n    \"skills\": [\"pipe_fitting\", \"welding\"],\n    \"can_assess_issues\": true,\n    \"can_resolve_issues\": true,\n    \"can_request_resources\": false,\n    \"id_type\": \"national_id\",\n    \"id_number\": \"GHA-987654321\",\n    \"address\": \"456 Worker Lane\",\n    \"emergency_contact_name\": \"Mary Kofi\",\n    \"emergency_contact_phone\": \"0244111111\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/task-force",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "task-force"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"member\": {\"id\": 1, \"employee_id\": \"TF-001\"},\n    \"generated_password\": \"tF8@pQr5Mn\"\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Verify Task Force Member",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/task-force/1/verify",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "task-force",
+                                "1",
+                                "verify"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Task force member verified successfully\"\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "5. Issue Management",
+            "description": "Issue tracking and workflow management for admins.",
+            "item": [
+                {
+                    "name": "List Issues",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues?status=submitted&priority=high&category=infrastructure&page=1&limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "submitted"
+                                },
+                                {
+                                    "key": "priority",
+                                    "value": "high"
+                                },
+                                {
+                                    "key": "category",
+                                    "value": "infrastructure"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"reports\": [{\"id\": 1, \"case_id\": \"ISS-001\", \"title\": \"Pothole\", \"status\": \"submitted\", \"priority\": \"high\"}],\n    \"pagination\": {\"page\": 1, \"limit\": 10, \"total\": 25, \"total_pages\": 3}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Issue",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"report\": {\n      \"id\": 1,\n      \"case_id\": \"ISS-001\",\n      \"title\": \"Pothole\",\n      \"description\": \"Large pothole on main road\",\n      \"status\": \"submitted\",\n      \"priority\": \"high\",\n      \"comments\": [],\n      \"statusHistory\": []\n    }\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Statistics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/stats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "stats"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"total\": 50,\n    \"pending\": 15,\n    \"resolved\": 30,\n    \"by_status\": {\"submitted\": 10, \"under_officer_review\": 5, \"resolved\": 30},\n    \"by_priority\": {\"urgent\": 5, \"high\": 15, \"medium\": 20, \"low\": 10}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Awaiting Action",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/awaiting-action",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "awaiting-action"
+                            ]
+                        },
+                        "description": "Get issues that need admin attention (forwarded, assessment/resolution submitted)."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"reports\": [],\n    \"counts\": {\"awaiting_assignment\": 3, \"awaiting_assessment_review\": 2, \"awaiting_resolution_review\": 1}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Status",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"under_officer_review\",\n    \"notes\": \"Assigned to officer for review\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/1/status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "1",
+                                "status"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Status updated successfully\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Assign to Officer/Agent",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"officer_id\": 1,\n    \"agent_id\": 2\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/1/assign",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "1",
+                                "assign"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Issue assigned successfully\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Assign to Task Force",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"task_force_id\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/1/assign-task-force",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "1",
+                                "assign-task-force"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Issue assigned to task force successfully\",\n  \"data\": {\"report\": {\"status\": \"assigned_to_task_force\"}}\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Allocate Resources",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"budget\": 5000,\n    \"resources\": \"Funds released for pipe replacement and labor\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/1/allocate-resources",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "1",
+                                "allocate-resources"
+                            ]
+                        },
+                        "description": "Allocate budget/resources after assessment is approved."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Resources allocated successfully\",\n  \"data\": {\"report\": {\"status\": \"resources_allocated\", \"allocated_budget\": 5000}}\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Review Assessment",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"action\": \"approve\",\n    \"notes\": \"Assessment looks good. Proceed with resource allocation.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/1/review-assessment",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "1",
+                                "review-assessment"
+                            ]
+                        },
+                        "description": "Review and approve/reject/request revision for assessment. Actions: approve, reject, revision"
+                    },
+                    "response": [
+                        {
+                            "name": "Approved",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Assessment reviewed successfully\",\n  \"data\": {\"assessment\": {\"status\": \"approved\"}}\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Review Resolution",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"action\": \"approve\",\n    \"notes\": \"Work completed satisfactorily. Issue resolved.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/1/review-resolution",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "1",
+                                "review-resolution"
+                            ]
+                        },
+                        "description": "Review and approve/reject resolution report. Approval marks issue as resolved."
+                    },
+                    "response": [
+                        {
+                            "name": "Approved",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Resolution reviewed successfully\",\n  \"data\": {\n    \"resolution\": {\"status\": \"approved\"},\n    \"report\": {\"status\": \"resolved\"}\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Add Comment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"comment\": \"Please prioritize this issue due to community impact.\",\n    \"is_internal\": true,\n    \"attachments\": []\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/issues/1/comments",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "issues",
+                                "1",
+                                "comments"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Comment added successfully\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Officer - Forward to Admin",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"notes\": \"This requires additional budget approval from administration.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/officer/issues/1/forward",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "officer",
+                                "issues",
+                                "1",
+                                "forward"
+                            ]
+                        },
+                        "description": "Officer forwards issue to admin for task force assignment."
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Issue forwarded to admin successfully\",\n  \"data\": {\"report\": {\"status\": \"forwarded_to_admin\"}}\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "6. Blog Posts",
+            "description": "News and article management.",
+            "item": [
+                {
+                    "name": "Public - List Posts",
                     "request": {
                         "method": "GET",
                         "url": {
-                            "raw": "{{baseUrl}}/blog?page=1&limit=10",
+                            "raw": "{{baseUrl}}/blog?page=1&limit=10&category=news&featured=true",
                             "host": [
                                 "{{baseUrl}}"
                             ],
@@ -271,64 +1717,100 @@
                                 {
                                     "key": "limit",
                                     "value": "10"
+                                },
+                                {
+                                    "key": "category",
+                                    "value": "news"
+                                },
+                                {
+                                    "key": "featured",
+                                    "value": "true"
                                 }
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"posts\": [{\"id\": 1, \"title\": \"Development Update\", \"slug\": \"development-update\", \"excerpt\": \"...\"}],\n    \"pagination\": {\"page\": 1, \"total\": 20}\n  }\n}"
+                        }
+                    ]
                 },
                 {
-                    "name": "Public - Get Featured",
+                    "name": "Public - Featured Posts",
                     "request": {
                         "method": "GET",
                         "url": {
-                            "raw": "{{baseUrl}}/blog/featured",
+                            "raw": "{{baseUrl}}/blog/featured?limit=3",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
                                 "blog",
                                 "featured"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "3"
+                                }
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"posts\": []}\n}"
+                        }
+                    ]
                 },
                 {
-                    "name": "Public - Get By Slug",
+                    "name": "Public - Get Post by Slug",
                     "request": {
                         "method": "GET",
                         "url": {
-                            "raw": "{{baseUrl}}/blog/post-slug-here",
+                            "raw": "{{baseUrl}}/blog/development-update",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
                                 "blog",
-                                "post-slug-here"
+                                "development-update"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\n    \"post\": {\"id\": 1, \"title\": \"Development Update\", \"content\": \"Full content...\", \"views\": 150}\n  }\n}"
+                        }
+                    ]
                 },
                 {
-                    "name": "Admin - Get All Posts",
+                    "name": "Public - Categories",
                     "request": {
                         "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
                         "url": {
-                            "raw": "{{baseUrl}}/admin/blog",
+                            "raw": "{{baseUrl}}/blog/categories",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
-                                "admin",
-                                "blog"
+                                "blog",
+                                "categories"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"categories\": [\"news\", \"announcements\", \"projects\"]}\n}"
+                        }
+                    ]
                 },
                 {
                     "name": "Admin - Create Post",
@@ -336,17 +1818,17 @@
                         "method": "POST",
                         "header": [
                             {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"title\": \"New Blog Post\",\n    \"content\": \"Full article content here...\",\n    \"excerpt\": \"Brief summary\",\n    \"category\": \"news\",\n    \"status\": \"draft\"\n}"
+                            "raw": "{\n    \"title\": \"New Infrastructure Project\",\n    \"slug\": \"new-infrastructure-project\",\n    \"excerpt\": \"Exciting new road project announced.\",\n    \"content\": \"<p>Full HTML content...</p>\",\n    \"image\": \"https://example.com/image.jpg\",\n    \"author\": \"Admin Team\",\n    \"category\": \"projects\",\n    \"tags\": [\"infrastructure\", \"roads\"],\n    \"status\": \"draft\",\n    \"is_featured\": true\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/admin/blog",
@@ -358,7 +1840,14 @@
                                 "blog"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Blog post created successfully\",\n  \"data\": {\"post\": {\"id\": 5, \"slug\": \"new-infrastructure-project\", \"status\": \"draft\"}}\n}"
+                        }
+                    ]
                 },
                 {
                     "name": "Admin - Publish Post",
@@ -382,81 +1871,23 @@
                                 "publish"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Blog post published successfully\"\n}"
+                        }
+                    ]
                 }
             ]
         },
         {
-            "name": "Events",
+            "name": "7. Projects",
+            "description": "Development project management.",
             "item": [
                 {
-                    "name": "Public - Get Events",
-                    "request": {
-                        "method": "GET",
-                        "url": {
-                            "raw": "{{baseUrl}}/events",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "events"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Public - Get Upcoming",
-                    "request": {
-                        "method": "GET",
-                        "url": {
-                            "raw": "{{baseUrl}}/events/upcoming",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "events",
-                                "upcoming"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin - Create Event",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"title\": \"Town Hall Meeting\",\n    \"description\": \"Monthly community meeting\",\n    \"location\": \"Community Center\",\n    \"event_date\": \"2025-01-15\",\n    \"start_time\": \"10:00\",\n    \"end_time\": \"12:00\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/events",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "events"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Projects",
-            "item": [
-                {
-                    "name": "Public - Get Projects",
+                    "name": "Public - List Projects",
                     "request": {
                         "method": "GET",
                         "url": {
@@ -468,10 +1899,17 @@
                                 "projects"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"projects\": [{\"id\": 1, \"title\": \"Road Construction\", \"status\": \"ongoing\", \"budget\": 50000}]}\n}"
+                        }
+                    ]
                 },
                 {
-                    "name": "Public - Get Stats",
+                    "name": "Public - Project Stats",
                     "request": {
                         "method": "GET",
                         "url": {
@@ -484,7 +1922,14 @@
                                 "stats"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"total\": 20, \"completed\": 15, \"ongoing\": 5}\n}"
+                        }
+                    ]
                 },
                 {
                     "name": "Admin - Create Project",
@@ -492,17 +1937,17 @@
                         "method": "POST",
                         "header": [
                             {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"title\": \"Road Construction\",\n    \"description\": \"5km road project\",\n    \"sector_id\": 1,\n    \"location\": \"District Area\",\n    \"status\": \"planning\",\n    \"budget\": 50000\n}"
+                            "raw": "{\n    \"title\": \"School Building Project\",\n    \"description\": \"Construction of new JHS block\",\n    \"sector_id\": 1,\n    \"location\": \"District A\",\n    \"budget\": 100000,\n    \"status\": \"planning\",\n    \"start_date\": \"2024-01-15\",\n    \"expected_end_date\": \"2024-06-30\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/admin/projects",
@@ -514,65 +1959,148 @@
                                 "projects"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"project\": {\"id\": 5}}\n}"
+                        }
+                    ]
                 }
             ]
         },
         {
-            "name": "Sectors",
+            "name": "8. Events",
+            "description": "Community event management.",
             "item": [
                 {
-                    "name": "Public - Get Sectors",
+                    "name": "Public - Upcoming Events",
                     "request": {
                         "method": "GET",
                         "url": {
-                            "raw": "{{baseUrl}}/sectors",
+                            "raw": "{{baseUrl}}/events/upcoming",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
-                                "sectors"
+                                "events",
+                                "upcoming"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"events\": [{\"id\": 1, \"title\": \"Town Hall Meeting\", \"event_date\": \"2024-01-15\"}]}\n}"
+                        }
+                    ]
                 },
                 {
-                    "name": "Admin - Create Sector",
+                    "name": "Admin - Create Event",
                     "request": {
                         "method": "POST",
                         "header": [
                             {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"Education\",\n    \"description\": \"Schools and training\",\n    \"icon\": \"school\",\n    \"color\": \"#4CAF50\"\n}"
+                            "raw": "{\n    \"title\": \"Community Durbar\",\n    \"description\": \"Annual community gathering\",\n    \"location\": \"Community Center\",\n    \"event_date\": \"2024-02-20\",\n    \"start_time\": \"09:00\",\n    \"end_time\": \"15:00\",\n    \"status\": \"upcoming\"\n}"
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/admin/sectors",
+                            "raw": "{{baseUrl}}/admin/events",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
                                 "admin",
-                                "sectors"
+                                "events"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"event\": {\"id\": 5}}\n}"
+                        }
+                    ]
                 }
             ]
         },
         {
-            "name": "FAQs",
+            "name": "9. Other CMS",
+            "description": "Hero slides, FAQs, sectors, stats, contact info, newsletter.",
             "item": [
                 {
-                    "name": "Public - Get FAQs",
+                    "name": "Hero Slides - Public",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/hero-slides",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "hero-slides"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"slides\": [{\"id\": 1, \"title\": \"Welcome\", \"image\": \"url\", \"status\": \"active\"}]}\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Hero Slides - Create",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Welcome to Our Constituency\",\n    \"subtitle\": \"Building Together\",\n    \"image\": \"https://example.com/slide.jpg\",\n    \"cta_text\": \"Learn More\",\n    \"cta_link\": \"/about\",\n    \"status\": \"active\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/hero-slides",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "hero-slides"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"slide\": {\"id\": 2}}\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "FAQs - Public",
                     "request": {
                         "method": "GET",
                         "url": {
@@ -584,45 +2112,39 @@
                                 "faqs"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"faqs\": [{\"id\": 1, \"question\": \"How to report?\", \"answer\": \"Contact an agent.\"}]}\n}"
+                        }
+                    ]
                 },
                 {
-                    "name": "Admin - Create FAQ",
+                    "name": "Sectors - Public",
                     "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"question\": \"How do I report an issue?\",\n    \"answer\": \"Contact your local agent...\",\n    \"category\": \"general\"\n}"
-                        },
+                        "method": "GET",
                         "url": {
-                            "raw": "{{baseUrl}}/admin/faqs",
+                            "raw": "{{baseUrl}}/sectors",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
-                                "admin",
-                                "faqs"
+                                "sectors"
                             ]
                         }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Community Stats",
-            "item": [
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"sectors\": [{\"id\": 1, \"name\": \"Education\", \"icon\": \"school\"}]}\n}"
+                        }
+                    ]
+                },
                 {
-                    "name": "Public - Get Stats",
+                    "name": "Community Stats - Public",
                     "request": {
                         "method": "GET",
                         "url": {
@@ -634,45 +2156,17 @@
                                 "stats"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"stats\": [{\"label\": \"Projects Completed\", \"value\": \"45\"}]}\n}"
+                        }
+                    ]
                 },
                 {
-                    "name": "Admin - Create Stat",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"label\": \"Projects Completed\",\n    \"value\": \"45\",\n    \"icon\": \"check-circle\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/stats",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "stats"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Contact Info",
-            "item": [
-                {
-                    "name": "Public - Get Contact",
+                    "name": "Contact Info - Public",
                     "request": {
                         "method": "GET",
                         "url": {
@@ -684,45 +2178,17 @@
                                 "contact"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"data\": {\"contacts\": [{\"type\": \"phone\", \"value\": \"+233244000000\"}]}\n}"
+                        }
+                    ]
                 },
                 {
-                    "name": "Admin - Create Contact",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"type\": \"phone\",\n    \"label\": \"Main Office\",\n    \"value\": \"+233249973054\",\n    \"icon\": \"phone\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/contact",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "contact"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Newsletter",
-            "item": [
-                {
-                    "name": "Public - Subscribe",
+                    "name": "Newsletter - Subscribe",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -745,485 +2211,47 @@
                                 "subscribe"
                             ]
                         }
-                    }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 201,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Subscribed successfully\"\n}"
+                        }
+                    ]
                 },
                 {
-                    "name": "Admin - Get Subscribers",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/newsletter",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "newsletter"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Issue Reports",
-            "item": [
-                {
-                    "name": "Agent - Submit Issue",
+                    "name": "Newsletter - Unsubscribe",
                     "request": {
                         "method": "POST",
                         "header": [
                             {
-                                "key": "Authorization",
-                                "value": "Bearer {{agentToken}}"
-                            },
-                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"title\": \"Broken Water Pipe\",\n    \"description\": \"Major leak on Main Street\",\n    \"category\": \"infrastructure\",\n    \"location\": \"Main Street\",\n    \"priority\": \"high\"\n}"
+                            "raw": "{\n    \"email\": \"subscriber@example.com\"\n}"
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/agent/issues",
+                            "raw": "{{baseUrl}}/newsletter/unsubscribe",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
-                                "agent",
-                                "issues"
+                                "newsletter",
+                                "unsubscribe"
                             ]
                         }
-                    }
-                },
-                {
-                    "name": "Officer - Forward to Admin",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{officerToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"notes\": \"Verified. Needs immediate attention.\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/officer/issues/1/forward",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "officer",
-                                "issues",
-                                "1",
-                                "forward"
-                            ]
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "code": 200,
+                            "body": "{\n  \"success\": true,\n  \"message\": \"Unsubscribed successfully\"\n}"
                         }
-                    }
-                },
-                {
-                    "name": "Admin - Get All Issues",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/issues",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "issues"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin - Get Stats",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/issues/stats",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "issues",
-                                "stats"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin - Assign to Task Force",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"task_force_id\": 1\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/issues/1/assign-task-force",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "issues",
-                                "1",
-                                "assign-task-force"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin - Allocate Resources",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"budget\": 5000,\n    \"resources\": [{\"type\": \"material\", \"item\": \"Pipes\", \"quantity\": 10}]\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/issues/1/allocate-resources",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "issues",
-                                "1",
-                                "allocate-resources"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Task Force",
-            "item": [
-                {
-                    "name": "TF - Get Profile",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{taskForceToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/task-force/profile",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "task-force",
-                                "profile"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "TF - Get Assigned Issues",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{taskForceToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/task-force/issues",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "task-force",
-                                "issues"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "TF - Submit Assessment",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{taskForceToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"assessment_summary\": \"Confirmed water pipe leak\",\n    \"issue_confirmed\": true,\n    \"severity\": \"high\",\n    \"estimated_cost\": 4500,\n    \"estimated_duration\": \"3 days\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/task-force/issues/1/assessment",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "task-force",
-                                "issues",
-                                "1",
-                                "assessment"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "TF - Submit Resolution",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{taskForceToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"resolution_summary\": \"Pipe replaced successfully\",\n    \"completion_date\": \"2025-12-30\",\n    \"actual_cost\": 4200\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/task-force/issues/1/resolution",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "task-force",
-                                "issues",
-                                "1",
-                                "resolution"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin - Get All Members",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/task-force",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "task-force"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin - Create Member",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"name\": \"Task Force Member\",\n    \"email\": \"tf@example.com\",\n    \"specialization\": \"infrastructure\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/task-force",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "task-force"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "User Management",
-            "item": [
-                {
-                    "name": "Admin - Get Web Admins",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/web-admins",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "web-admins"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin - Get Officers",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/officers",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "officers"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin - Get Agents",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/agents",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "agents"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Officer - Get My Reports",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{officerToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/officer/reports",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "officer",
-                                "reports"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Agent - Get My Reports",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{agentToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/agent/my-reports",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "agent",
-                                "my-reports"
-                            ]
-                        }
-                    }
+                    ]
                 }
             ]
         }
