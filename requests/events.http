@@ -1,10 +1,10 @@
 ### ============================================================
 ### EVENTS API REQUESTS
-### Base URL: http://localhost:8000/v1
+### Base URL: http://app.comdevhub-api.com/v1
 ### ============================================================
 
 ### Variables
-@baseUrl = http://localhost:8000/v1
+@baseUrl = http://app.comdevhub-api.com/v1
 @authToken = YOUR_JWT_TOKEN_HERE
 
 ### ============================================================
