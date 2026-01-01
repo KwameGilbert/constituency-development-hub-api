@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Models\Project;
 use App\Models\Sector;
+use App\Models\WebAdmin;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -206,8 +207,11 @@ class ProjectController
                 $slug = $slug . '-' . time();
             }
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $project = Project::create([
-                'created_by' => $user->id ?? null,
+                'created_by' => $webAdmin->id ?? null,
                 'title' => $data['title'],
                 'slug' => $slug,
                 'sector_id' => $data['sector_id'],
@@ -253,8 +257,11 @@ class ProjectController
             $data = $request->getParsedBody();
             $user = $request->getAttribute('user');
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $project->update([
-                'updated_by' => $user->id ?? null,
+                'updated_by' => $webAdmin->id ?? null,
                 'title' => $data['title'] ?? $project->title,
                 'slug' => $data['slug'] ?? $project->slug,
                 'sector_id' => $data['sector_id'] ?? $project->sector_id,

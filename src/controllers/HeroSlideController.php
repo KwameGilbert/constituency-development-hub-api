@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\HeroSlide;
+use App\Models\WebAdmin;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -91,8 +92,11 @@ class HeroSlideController
                 return ResponseHelper::error($response, 'Image is required', 400);
             }
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $slide = HeroSlide::create([
-                'created_by' => $user->id ?? null,
+                'created_by' => $webAdmin->id ?? null,
                 'title' => $data['title'],
                 'subtitle' => $data['subtitle'] ?? null,
                 'description' => $data['description'] ?? null,
@@ -129,8 +133,11 @@ class HeroSlideController
             $data = $request->getParsedBody();
             $user = $request->getAttribute('user');
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $slide->update([
-                'updated_by' => $user->id ?? null,
+                'updated_by' => $webAdmin->id ?? null,
                 'title' => $data['title'] ?? $slide->title,
                 'subtitle' => $data['subtitle'] ?? $slide->subtitle,
                 'description' => $data['description'] ?? $slide->description,

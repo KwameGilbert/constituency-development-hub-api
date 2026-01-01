@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\CommunityStat;
+use App\Models\WebAdmin;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -91,8 +92,11 @@ class CommunityStatController
                 return ResponseHelper::error($response, 'Value is required', 400);
             }
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $stat = CommunityStat::create([
-                'created_by' => $user->id ?? null,
+                'created_by' => $webAdmin->id ?? null,
                 'label' => $data['label'],
                 'value' => $data['value'],
                 'icon' => $data['icon'] ?? null,
@@ -124,8 +128,11 @@ class CommunityStatController
             $data = $request->getParsedBody();
             $user = $request->getAttribute('user');
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $stat->update([
-                'updated_by' => $user->id ?? null,
+                'updated_by' => $webAdmin->id ?? null,
                 'label' => $data['label'] ?? $stat->label,
                 'value' => $data['value'] ?? $stat->value,
                 'icon' => $data['icon'] ?? $stat->icon,

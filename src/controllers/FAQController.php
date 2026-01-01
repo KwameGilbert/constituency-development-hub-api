@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\FAQ;
+use App\Models\WebAdmin;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -116,8 +117,11 @@ class FAQController
                 return ResponseHelper::error($response, 'Answer is required', 400);
             }
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $faq = FAQ::create([
-                'created_by' => $user->id ?? null,
+                'created_by' => $webAdmin->id ?? null,
                 'question' => $data['question'],
                 'answer' => $data['answer'],
                 'category' => $data['category'] ?? null,
@@ -149,8 +153,11 @@ class FAQController
             $data = $request->getParsedBody();
             $user = $request->getAttribute('user');
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $faq->update([
-                'updated_by' => $user->id ?? null,
+                'updated_by' => $webAdmin->id ?? null,
                 'question' => $data['question'] ?? $faq->question,
                 'answer' => $data['answer'] ?? $faq->answer,
                 'category' => $data['category'] ?? $faq->category,
