@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\User;
-use App\Models\Attendee;
-use App\Models\Organizer;
+use App\Models\WebAdmin;
+use App\Models\Officer;
+use App\Models\Agent;
+use App\Models\TaskForce;
 use App\Models\EmailVerificationToken;
 use App\Helper\ResponseHelper;
 use App\Services\AuthService;
@@ -63,7 +65,7 @@ class AuthController
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'password' => $this->authService->hashPassword($data['password']),
-                'role' => $data['role'] ?? User::ROLE_ATTENDEE,
+                'role' => $data['role'] ?? User::ROLE_WEB_ADMIN,
                 'status' => User::STATUS_ACTIVE,
                 'email_verified' => false,
                 'first_login' => true
@@ -103,40 +105,57 @@ class AuthController
     }
 
     /**
-     * Create role-based profile (Attendee or Organizer) for a new user
+     * Create role-based profile for a new user
+     * Supports: WebAdmin, Officer, Agent, TaskForce
      */
     private function createRoleProfile(User $user, array $data): void
     {
         switch ($user->role) {
-            case User::ROLE_ATTENDEE:
-                // Split name into first and last name
-                $nameParts = explode(' ', $user->name, 2);
-                $firstName = $nameParts[0];
-                $lastName = $nameParts[1] ?? '';
-
-                Attendee::create([
+            case User::ROLE_WEB_ADMIN:
+                WebAdmin::create([
                     'user_id' => $user->id,
-                    'first_name' => $firstName,
-                    'last_name' => $lastName,
-                    'email' => $user->email,
-                    'phone' => $data['phone'] ?? null,
+                    'department' => $data['department'] ?? null,
+                    'employee_id' => $data['employee_id'] ?? null,
                 ]);
                 break;
 
-            case User::ROLE_ORGANIZER:
-                // Use organization name if provided, otherwise use user's name
-                $organizationName = $data['organizerName'] ?? $data['organization_name'] ?? $user->name;
-
-                Organizer::create([
+            case User::ROLE_OFFICER:
+                Officer::create([
                     'user_id' => $user->id,
-                    'organization_name' => $organizationName,
+                    'department' => $data['department'] ?? null,
+                    'position' => $data['position'] ?? null,
+                    'employee_id' => $data['employee_id'] ?? null,
                 ]);
                 break;
 
-            // POS, Scanner, and Admin roles don't need additional profiles
+            case User::ROLE_AGENT:
+                Agent::create([
+                    'user_id' => $user->id,
+                    'community' => $data['community'] ?? null,
+                    'ward' => $data['ward'] ?? null,
+                    'agent_code' => $data['agent_code'] ?? $this->generateAgentCode(),
+                ]);
+                break;
+
+            case User::ROLE_TASK_FORCE:
+                TaskForce::create([
+                    'user_id' => $user->id,
+                    'specialization' => $data['specialization'] ?? null,
+                    'team_id' => $data['team_id'] ?? null,
+                ]);
+                break;
+
             default:
                 break;
         }
+    }
+
+    /**
+     * Generate a unique agent code
+     */
+    private function generateAgentCode(): string
+    {
+        return 'AGT-' . strtoupper(substr(md5(uniqid((string)mt_rand(), true)), 0, 8));
     }
 
     /**
@@ -403,14 +422,13 @@ class AuthController
 
         if (
             isset($data['role']) && !in_array($data['role'], [
-                User::ROLE_ADMIN,
-                User::ROLE_ORGANIZER,
-                User::ROLE_ATTENDEE,
-                User::ROLE_POS,
-                User::ROLE_SCANNER
+                User::ROLE_WEB_ADMIN,
+                User::ROLE_OFFICER,
+                User::ROLE_AGENT,
+                User::ROLE_TASK_FORCE
             ])
         ) {
-            $errors['role'] = 'Invalid role';
+            $errors['role'] = 'Invalid role. Must be one of: web_admin, officer, agent, task_force';
         }
 
         return $errors;
