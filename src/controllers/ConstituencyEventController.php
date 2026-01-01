@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\ConstituencyEvent;
+use App\Models\WebAdmin;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -178,8 +179,11 @@ class ConstituencyEventController
                 $slug = $slug . '-' . time();
             }
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $event = ConstituencyEvent::create([
-                'created_by' => $user->id ?? null,
+                'created_by' => $webAdmin->id ?? null,
                 'name' => $data['name'],
                 'slug' => $slug,
                 'description' => $data['description'] ?? null,
@@ -223,8 +227,11 @@ class ConstituencyEventController
             $data = $request->getParsedBody();
             $user = $request->getAttribute('user');
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $event->update([
-                'updated_by' => $user->id ?? null,
+                'updated_by' => $webAdmin->id ?? null,
                 'name' => $data['name'] ?? $event->name,
                 'slug' => $data['slug'] ?? $event->slug,
                 'description' => $data['description'] ?? $event->description,

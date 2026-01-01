@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\Sector;
+use App\Models\WebAdmin;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -117,8 +118,11 @@ class SectorController
                 $slug = $slug . '-' . time();
             }
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $sector = Sector::create([
-                'created_by' => $user->id ?? null,
+                'created_by' => $webAdmin->id ?? null,
                 'name' => $data['name'],
                 'slug' => $slug,
                 'description' => $data['description'] ?? null,
@@ -152,8 +156,11 @@ class SectorController
             $data = $request->getParsedBody();
             $user = $request->getAttribute('user');
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $sector->update([
-                'updated_by' => $user->id ?? null,
+                'updated_by' => $webAdmin->id ?? null,
                 'name' => $data['name'] ?? $sector->name,
                 'slug' => $data['slug'] ?? $sector->slug,
                 'description' => $data['description'] ?? $sector->description,

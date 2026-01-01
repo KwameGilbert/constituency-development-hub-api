@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\ContactInfo;
+use App\Models\WebAdmin;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -101,8 +102,11 @@ class ContactInfoController
                 return ResponseHelper::error($response, 'Invalid type', 400);
             }
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $contact = ContactInfo::create([
-                'created_by' => $user->id ?? null,
+                'created_by' => $webAdmin->id ?? null,
                 'type' => $data['type'],
                 'label' => $data['label'] ?? null,
                 'value' => $data['value'],
@@ -136,8 +140,11 @@ class ContactInfoController
             $data = $request->getParsedBody();
             $user = $request->getAttribute('user');
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $contact->update([
-                'updated_by' => $user->id ?? null,
+                'updated_by' => $webAdmin->id ?? null,
                 'type' => $data['type'] ?? $contact->type,
                 'label' => $data['label'] ?? $contact->label,
                 'value' => $data['value'] ?? $contact->value,
