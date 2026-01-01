@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\BlogPost;
+use App\Models\WebAdmin;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -179,8 +180,11 @@ class BlogPostController
                 $slug = $slug . '-' . time();
             }
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $post = BlogPost::create([
-                'created_by' => $user->id ?? null,
+                'created_by' => $webAdmin->id ?? null,
                 'title' => $data['title'],
                 'slug' => $slug,
                 'excerpt' => $data['excerpt'] ?? null,
@@ -224,8 +228,11 @@ class BlogPostController
                 $publishedAt = date('Y-m-d H:i:s');
             }
 
+            // Fetch the web-admin profile for this user
+            $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
+
             $post->update([
-                'updated_by' => $user->id ?? null,
+                'updated_by' => $webAdmin->id ?? null,
                 'title' => $data['title'] ?? $post->title,
                 'slug' => $data['slug'] ?? $post->slug,
                 'excerpt' => $data['excerpt'] ?? $post->excerpt,
