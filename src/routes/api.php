@@ -21,7 +21,7 @@ return function ($app): void {
         '/v1/stats' => ROUTE . 'v1/CommunityStatRoute.php',
         '/v1/contact' => ROUTE . 'v1/ContactInfoRoute.php',
         '/v1/newsletter' => ROUTE . 'v1/NewsletterRoute.php',
-        '/v1/upload' => ROUTE . 'v1/UploadRoute.php',
+
         '/v1/issues' => ROUTE . 'v1/IssueReportRoute.php',
 
         // Role-specific dashboard routes
