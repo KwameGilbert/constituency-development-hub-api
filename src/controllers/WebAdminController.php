@@ -78,7 +78,8 @@ class WebAdminController
     public function store(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
 
             // Validation
             if (empty($data['name'])) {
@@ -89,6 +90,17 @@ class WebAdminController
             }
             if (User::emailExists($data['email'])) {
                 return ResponseHelper::error($response, 'Email already exists', 400);
+            }
+
+            // Handle profile image upload
+            $profileImageUrl = $data['profile_image'] ?? null;
+            $imageFile = $uploadedFiles['profile_image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $profileImageUrl = $this->uploadService->uploadFile($imageFile, 'image', 'admins');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Profile image upload failed: ' . $e->getMessage(), 400);
+                }
             }
 
             // Generate password if not provided
@@ -113,7 +125,7 @@ class WebAdminController
                 'admin_level' => $data['admin_level'] ?? WebAdmin::LEVEL_ADMIN,
                 'department' => $data['department'] ?? null,
                 'permissions' => $data['permissions'] ?? null,
-                'profile_image' => $data['profile_image'] ?? null,
+                'profile_image' => $profileImageUrl,
                 'notes' => $data['notes'] ?? null,
             ]);
 
@@ -139,7 +151,19 @@ class WebAdminController
                 return ResponseHelper::error($response, 'Web admin not found', 404);
             }
 
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
+
+            // Handle profile image upload
+            $profileImageUrl = $data['profile_image'] ?? $admin->profile_image;
+            $imageFile = $uploadedFiles['profile_image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $profileImageUrl = $this->uploadService->replaceFile($imageFile, $admin->profile_image, 'image', 'admins');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Profile image upload failed: ' . $e->getMessage(), 400);
+                }
+            }
 
             // Update user data
             if ($admin->user) {
@@ -158,7 +182,7 @@ class WebAdminController
                 'admin_level' => $data['admin_level'] ?? $admin->admin_level,
                 'department' => $data['department'] ?? $admin->department,
                 'permissions' => $data['permissions'] ?? $admin->permissions,
-                'profile_image' => $data['profile_image'] ?? $admin->profile_image,
+                'profile_image' => $profileImageUrl,
                 'notes' => $data['notes'] ?? $admin->notes,
             ]);
 
