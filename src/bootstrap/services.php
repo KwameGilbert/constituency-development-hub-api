@@ -16,7 +16,7 @@ use App\Services\UploadService;
 use App\Controllers\AuthController;
 use App\Controllers\UserController;
 use App\Controllers\PasswordResetController;
-use App\Controllers\UploadController;
+
 use App\Controllers\BlogPostController;
 use App\Controllers\ConstituencyEventController;
 use App\Controllers\HeroSlideController;
@@ -103,12 +103,7 @@ return function ($container) {
         );
     });
 
-    // Upload Controller
-    $container->set(UploadController::class, function ($container) {
-        return new UploadController(
-            $container->get(UploadService::class)
-        );
-    });
+
 
     // CMS Controllers with UploadService
     $container->set(BlogPostController::class, function ($container) {
