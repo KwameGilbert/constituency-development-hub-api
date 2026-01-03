@@ -28,7 +28,7 @@ class Database
         $this->username = $_ENV[$this->prefix . 'USERNAME'];
         $this->password = $_ENV[$this->prefix . 'PASSWORD'];
         $this->driver   = $_ENV[$this->prefix . 'DRIVER'];
-        $this->ssl      = $_ENV[$this->prefix . 'SSL'] === 'true';
+        $this->ssl      = $_ENV[$this->prefix . 'SSL'];
         $this->charset  = $_ENV[$this->prefix . 'CHARSET'] ?? 'utf8mb4';
     }
 
