@@ -32,7 +32,7 @@ final class UsersAndRolesSchema extends AbstractMigration
                 ->addColumn('phone', 'string', ['limit' => 50, 'null' => true])
                 ->addColumn('password', 'string', ['limit' => 255, 'null' => false])
                 ->addColumn('role', 'enum', [
-                    'values' => ['web_admin', 'officer', 'agent'],
+                    'values' => ['web_admin', 'officer', 'agent','task_force'],
                     'null' => false
                 ])
                 ->addColumn('email_verified', 'boolean', ['default' => false, 'null' => false])
