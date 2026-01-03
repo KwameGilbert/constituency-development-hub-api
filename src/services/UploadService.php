@@ -47,25 +47,7 @@ class UploadService
             'extensions' => ['mp4', 'mpeg', 'mov', 'avi'],
             'max_size' => 100 * 1024 * 1024, // 100MB
             'directory' => 'videos',
-        ],
-        'avatar' => [
-            'mimes' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'],
-            'extensions' => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-            'max_size' => 2 * 1024 * 1024, // 2MB
-            'directory' => 'avatars',
-        ],
-        'nominee' => [
-            'mimes' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'],
-            'extensions' => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-            'max_size' => 2 * 1024 * 1024, // 2MB
-            'directory' => 'nominees',
-        ],
-        'ticket' => [
-            'mimes' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'],
-            'extensions' => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-            'max_size' => 2 * 1024 * 1024, // 2MB
-            'directory' => 'tickets',
-        ],
+        ]
     ];
 
     public function __construct()

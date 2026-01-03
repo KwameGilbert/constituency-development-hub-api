@@ -7,9 +7,11 @@ namespace App\Controllers;
 use App\Models\Project;
 use App\Models\Sector;
 use App\Models\WebAdmin;
+use App\Services\UploadService;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UploadedFileInterface;
 use Exception;
 
 /**
@@ -20,6 +22,12 @@ use Exception;
  */
 class ProjectController
 {
+    private UploadService $uploadService;
+
+    public function __construct(UploadService $uploadService)
+    {
+        $this->uploadService = $uploadService;
+    }
     /**
      * Get all projects (Public)
      * GET /api/projects
@@ -187,7 +195,8 @@ class ProjectController
     public function store(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
             $user = $request->getAttribute('user');
 
             // Validation
@@ -199,6 +208,32 @@ class ProjectController
             }
             if (empty($data['location'])) {
                 return ResponseHelper::error($response, 'Location is required', 400);
+            }
+
+            // Handle main image upload
+            $imageUrl = $data['image'] ?? null;
+            $imageFile = $uploadedFiles['image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $imageUrl = $this->uploadService->uploadFile($imageFile, 'image', 'projects');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Image upload failed: ' . $e->getMessage(), 400);
+                }
+            }
+
+            // Handle gallery images upload
+            $galleryUrls = $data['gallery'] ?? null;
+            $galleryFiles = $uploadedFiles['gallery'] ?? [];
+            if (!empty($galleryFiles) && is_array($galleryFiles)) {
+                try {
+                    $uploadedGallery = $this->uploadService->uploadMultipleFiles($galleryFiles, 'image', 'projects/gallery');
+                    if (!empty($uploadedGallery)) {
+                        $galleryUrls = json_encode($uploadedGallery);
+                    }
+                } catch (Exception $e) {
+                    // Log but don't fail the whole request
+                    error_log('Gallery upload failed: ' . $e->getMessage());
+                }
             }
 
             // Generate slug
@@ -224,8 +259,8 @@ class ProjectController
                 'spent' => $data['spent'] ?? 0,
                 'progress_percent' => $data['progress_percent'] ?? 0,
                 'beneficiaries' => $data['beneficiaries'] ?? null,
-                'image' => $data['image'] ?? null,
-                'gallery' => $data['gallery'] ?? null,
+                'image' => $imageUrl,
+                'gallery' => $galleryUrls,
                 'contractor' => $data['contractor'] ?? null,
                 'contact_person' => $data['contact_person'] ?? null,
                 'contact_phone' => $data['contact_phone'] ?? null,
@@ -254,8 +289,36 @@ class ProjectController
                 return ResponseHelper::error($response, 'Project not found', 404);
             }
 
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
             $user = $request->getAttribute('user');
+
+            // Handle main image upload
+            $imageUrl = $data['image'] ?? $project->image;
+            $imageFile = $uploadedFiles['image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $imageUrl = $this->uploadService->replaceFile($imageFile, $project->image, 'image', 'projects');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Image upload failed: ' . $e->getMessage(), 400);
+                }
+            }
+
+            // Handle gallery images upload (append to existing)
+            $galleryUrls = $data['gallery'] ?? $project->gallery;
+            $galleryFiles = $uploadedFiles['gallery'] ?? [];
+            if (!empty($galleryFiles) && is_array($galleryFiles)) {
+                try {
+                    $uploadedGallery = $this->uploadService->uploadMultipleFiles($galleryFiles, 'image', 'projects/gallery');
+                    if (!empty($uploadedGallery)) {
+                        // Merge with existing gallery
+                        $existingGallery = is_string($project->gallery) ? json_decode($project->gallery, true) : [];
+                        $galleryUrls = json_encode(array_merge($existingGallery ?: [], $uploadedGallery));
+                    }
+                } catch (Exception $e) {
+                    error_log('Gallery upload failed: ' . $e->getMessage());
+                }
+            }
 
             // Fetch the web-admin profile for this user
             $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
@@ -274,8 +337,8 @@ class ProjectController
                 'spent' => $data['spent'] ?? $project->spent,
                 'progress_percent' => $data['progress_percent'] ?? $project->progress_percent,
                 'beneficiaries' => $data['beneficiaries'] ?? $project->beneficiaries,
-                'image' => $data['image'] ?? $project->image,
-                'gallery' => $data['gallery'] ?? $project->gallery,
+                'image' => $imageUrl,
+                'gallery' => $galleryUrls,
                 'contractor' => $data['contractor'] ?? $project->contractor,
                 'contact_person' => $data['contact_person'] ?? $project->contact_person,
                 'contact_phone' => $data['contact_phone'] ?? $project->contact_phone,

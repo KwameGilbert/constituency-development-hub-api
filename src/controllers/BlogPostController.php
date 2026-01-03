@@ -6,9 +6,11 @@ namespace App\Controllers;
 
 use App\Models\BlogPost;
 use App\Models\WebAdmin;
+use App\Services\UploadService;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UploadedFileInterface;
 use Exception;
 
 /**
@@ -19,6 +21,12 @@ use Exception;
  */
 class BlogPostController
 {
+    private UploadService $uploadService;
+
+    public function __construct(UploadService $uploadService)
+    {
+        $this->uploadService = $uploadService;
+    }
     /**
      * Get all published posts (Public)
      * GET /api/blog
@@ -164,12 +172,24 @@ class BlogPostController
     public function store(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
             $user = $request->getAttribute('user');
 
             // Validation
             if (empty($data['title'])) {
                 return ResponseHelper::error($response, 'Title is required', 400);
+            }
+
+            // Handle image upload
+            $imageUrl = $data['image'] ?? null;
+            $imageFile = $uploadedFiles['image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $imageUrl = $this->uploadService->uploadFile($imageFile, 'image', 'blog');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Image upload failed: ' . $e->getMessage(), 400);
+                }
             }
 
             // Generate slug if not provided
@@ -189,7 +209,7 @@ class BlogPostController
                 'slug' => $slug,
                 'excerpt' => $data['excerpt'] ?? null,
                 'content' => $data['content'] ?? null,
-                'image' => $data['image'] ?? null,
+                'image' => $imageUrl,
                 'author' => $data['author'] ?? null,
                 'category' => $data['category'] ?? null,
                 'tags' => $data['tags'] ?? null,
@@ -219,8 +239,21 @@ class BlogPostController
                 return ResponseHelper::error($response, 'Blog post not found', 404);
             }
 
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
             $user = $request->getAttribute('user');
+
+            // Handle image upload
+            $imageUrl = $data['image'] ?? $post->image;
+            $imageFile = $uploadedFiles['image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    // Upload new image and delete old one
+                    $imageUrl = $this->uploadService->replaceFile($imageFile, $post->image, 'image', 'blog');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Image upload failed: ' . $e->getMessage(), 400);
+                }
+            }
 
             // Handle publishing
             $publishedAt = $post->published_at;
@@ -237,7 +270,7 @@ class BlogPostController
                 'slug' => $data['slug'] ?? $post->slug,
                 'excerpt' => $data['excerpt'] ?? $post->excerpt,
                 'content' => $data['content'] ?? $post->content,
-                'image' => $data['image'] ?? $post->image,
+                'image' => $imageUrl,
                 'author' => $data['author'] ?? $post->author,
                 'category' => $data['category'] ?? $post->category,
                 'tags' => $data['tags'] ?? $post->tags,

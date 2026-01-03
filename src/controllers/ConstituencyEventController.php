@@ -6,9 +6,11 @@ namespace App\Controllers;
 
 use App\Models\ConstituencyEvent;
 use App\Models\WebAdmin;
+use App\Services\UploadService;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UploadedFileInterface;
 use Exception;
 
 /**
@@ -19,6 +21,12 @@ use Exception;
  */
 class ConstituencyEventController
 {
+    private UploadService $uploadService;
+
+    public function __construct(UploadService $uploadService)
+    {
+        $this->uploadService = $uploadService;
+    }
     /**
      * Get upcoming events (Public)
      * GET /api/events
@@ -159,7 +167,8 @@ class ConstituencyEventController
     public function store(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
             $user = $request->getAttribute('user');
 
             // Validation
@@ -171,6 +180,17 @@ class ConstituencyEventController
             }
             if (empty($data['location'])) {
                 return ResponseHelper::error($response, 'Location is required', 400);
+            }
+
+            // Handle image upload
+            $imageUrl = $data['image'] ?? null;
+            $imageFile = $uploadedFiles['image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $imageUrl = $this->uploadService->uploadFile($imageFile, 'image', 'events');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Image upload failed: ' . $e->getMessage(), 400);
+                }
             }
 
             // Generate slug
@@ -193,7 +213,7 @@ class ConstituencyEventController
                 'location' => $data['location'],
                 'venue_address' => $data['venue_address'] ?? null,
                 'map_url' => $data['map_url'] ?? null,
-                'image' => $data['image'] ?? null,
+                'image' => $imageUrl,
                 'organizer' => $data['organizer'] ?? null,
                 'contact_phone' => $data['contact_phone'] ?? null,
                 'contact_email' => $data['contact_email'] ?? null,
@@ -224,8 +244,20 @@ class ConstituencyEventController
                 return ResponseHelper::error($response, 'Event not found', 404);
             }
 
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
             $user = $request->getAttribute('user');
+
+            // Handle image upload
+            $imageUrl = $data['image'] ?? $event->image;
+            $imageFile = $uploadedFiles['image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $imageUrl = $this->uploadService->replaceFile($imageFile, $event->image, 'image', 'events');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Image upload failed: ' . $e->getMessage(), 400);
+                }
+            }
 
             // Fetch the web-admin profile for this user
             $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
@@ -241,7 +273,7 @@ class ConstituencyEventController
                 'location' => $data['location'] ?? $event->location,
                 'venue_address' => $data['venue_address'] ?? $event->venue_address,
                 'map_url' => $data['map_url'] ?? $event->map_url,
-                'image' => $data['image'] ?? $event->image,
+                'image' => $imageUrl,
                 'organizer' => $data['organizer'] ?? $event->organizer,
                 'contact_phone' => $data['contact_phone'] ?? $event->contact_phone,
                 'contact_email' => $data['contact_email'] ?? $event->contact_email,

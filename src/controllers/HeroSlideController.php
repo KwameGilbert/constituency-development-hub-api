@@ -6,9 +6,11 @@ namespace App\Controllers;
 
 use App\Models\HeroSlide;
 use App\Models\WebAdmin;
+use App\Services\UploadService;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UploadedFileInterface;
 use Exception;
 
 /**
@@ -19,6 +21,12 @@ use Exception;
  */
 class HeroSlideController
 {
+    private UploadService $uploadService;
+
+    public function __construct(UploadService $uploadService)
+    {
+        $this->uploadService = $uploadService;
+    }
     /**
      * Get all active slides (Public)
      * GET /api/hero-slides
@@ -81,14 +89,28 @@ class HeroSlideController
     public function store(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
             $user = $request->getAttribute('user');
 
             // Validation
             if (empty($data['title'])) {
                 return ResponseHelper::error($response, 'Title is required', 400);
             }
-            if (empty($data['image'])) {
+
+            // Handle image upload
+            $imageUrl = $data['image'] ?? null;
+            $imageFile = $uploadedFiles['image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    // Use banner type for hero slides as they're typically larger
+                    $imageUrl = $this->uploadService->uploadFile($imageFile, 'banner', 'hero-slides');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Image upload failed: ' . $e->getMessage(), 400);
+                }
+            }
+
+            if (empty($imageUrl)) {
                 return ResponseHelper::error($response, 'Image is required', 400);
             }
 
@@ -100,7 +122,7 @@ class HeroSlideController
                 'title' => $data['title'],
                 'subtitle' => $data['subtitle'] ?? null,
                 'description' => $data['description'] ?? null,
-                'image' => $data['image'],
+                'image' => $imageUrl,
                 'cta_label' => $data['cta_label'] ?? null,
                 'cta_link' => $data['cta_link'] ?? null,
                 'display_order' => $data['display_order'] ?? 0,
@@ -130,8 +152,20 @@ class HeroSlideController
                 return ResponseHelper::error($response, 'Hero slide not found', 404);
             }
 
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
             $user = $request->getAttribute('user');
+
+            // Handle image upload
+            $imageUrl = $data['image'] ?? $slide->image;
+            $imageFile = $uploadedFiles['image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $imageUrl = $this->uploadService->replaceFile($imageFile, $slide->image, 'banner', 'hero-slides');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Image upload failed: ' . $e->getMessage(), 400);
+                }
+            }
 
             // Fetch the web-admin profile for this user
             $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
@@ -141,7 +175,7 @@ class HeroSlideController
                 'title' => $data['title'] ?? $slide->title,
                 'subtitle' => $data['subtitle'] ?? $slide->subtitle,
                 'description' => $data['description'] ?? $slide->description,
-                'image' => $data['image'] ?? $slide->image,
+                'image' => $imageUrl,
                 'cta_label' => $data['cta_label'] ?? $slide->cta_label,
                 'cta_link' => $data['cta_link'] ?? $slide->cta_link,
                 'display_order' => $data['display_order'] ?? $slide->display_order,

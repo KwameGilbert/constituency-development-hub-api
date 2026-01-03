@@ -8,9 +8,11 @@ use App\Models\IssueReport;
 use App\Models\IssueReportComment;
 use App\Models\IssueReportStatusHistory;
 use App\Models\Agent;
+use App\Services\UploadService;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UploadedFileInterface;
 use Exception;
 
 /**
@@ -22,6 +24,12 @@ use Exception;
  */
 class IssueReportController
 {
+    private UploadService $uploadService;
+
+    public function __construct(UploadService $uploadService)
+    {
+        $this->uploadService = $uploadService;
+    }
     /**
      * Submit a new issue report (Public)
      * POST /api/issues
@@ -29,7 +37,8 @@ class IssueReportController
     public function submit(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
 
             // Validation
             if (empty($data['title'])) {
@@ -42,6 +51,24 @@ class IssueReportController
                 return ResponseHelper::error($response, 'Location is required', 400);
             }
 
+            // Handle images upload
+            $imagesJson = $data['images'] ?? null;
+            $imageFiles = $uploadedFiles['images'] ?? [];
+            if (!empty($imageFiles)) {
+                if (!is_array($imageFiles)) {
+                    $imageFiles = [$imageFiles];
+                }
+                try {
+                    $uploadedImages = $this->uploadService->uploadMultipleFiles($imageFiles, 'image', 'issues');
+                    if (!empty($uploadedImages)) {
+                        $imagesJson = json_encode($uploadedImages);
+                    }
+                } catch (Exception $e) {
+                    // Log but don't fail - images are optional
+                    error_log('Issue images upload failed: ' . $e->getMessage());
+                }
+            }
+
             $report = IssueReport::create([
                 'case_id' => IssueReport::generateCaseId(),
                 'title' => $data['title'],
@@ -50,7 +77,7 @@ class IssueReportController
                 'location' => $data['location'],
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
-                'images' => $data['images'] ?? null,
+                'images' => $imagesJson,
                 'reporter_name' => $data['reporter_name'] ?? null,
                 'reporter_email' => $data['reporter_email'] ?? null,
                 'reporter_phone' => $data['reporter_phone'] ?? null,
@@ -367,7 +394,8 @@ class IssueReportController
     public function agentSubmit(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
             $user = $request->getAttribute('user');
 
             // Get agent profile
@@ -392,6 +420,23 @@ class IssueReportController
                 return ResponseHelper::error($response, 'Location is required', 400);
             }
 
+            // Handle images upload
+            $imagesJson = $data['images'] ?? null;
+            $imageFiles = $uploadedFiles['images'] ?? [];
+            if (!empty($imageFiles)) {
+                if (!is_array($imageFiles)) {
+                    $imageFiles = [$imageFiles];
+                }
+                try {
+                    $uploadedImages = $this->uploadService->uploadMultipleFiles($imageFiles, 'image', 'issues');
+                    if (!empty($uploadedImages)) {
+                        $imagesJson = json_encode($uploadedImages);
+                    }
+                } catch (Exception $e) {
+                    error_log('Issue images upload failed: ' . $e->getMessage());
+                }
+            }
+
             $report = IssueReport::create([
                 'case_id' => IssueReport::generateCaseId(),
                 'title' => $data['title'],
@@ -400,7 +445,7 @@ class IssueReportController
                 'location' => $data['location'],
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
-                'images' => $data['images'] ?? null,
+                'images' => $imagesJson,
                 'reporter_name' => $data['reporter_name'] ?? null,
                 'reporter_email' => $data['reporter_email'] ?? null,
                 'reporter_phone' => $data['reporter_phone'] ?? null,
