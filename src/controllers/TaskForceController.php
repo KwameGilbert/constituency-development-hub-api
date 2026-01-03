@@ -96,7 +96,8 @@ class TaskForceController
     public function store(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
 
             // Validation
             if (empty($data['name'])) {
@@ -107,6 +108,17 @@ class TaskForceController
             }
             if (User::emailExists($data['email'])) {
                 return ResponseHelper::error($response, 'Email already exists', 400);
+            }
+
+            // Handle profile image upload
+            $profileImageUrl = $data['profile_image'] ?? null;
+            $imageFile = $uploadedFiles['profile_image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $profileImageUrl = $this->uploadService->uploadFile($imageFile, 'image', 'task-force');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Profile image upload failed: ' . $e->getMessage(), 400);
+                }
             }
 
             // Generate password if not provided
@@ -135,7 +147,7 @@ class TaskForceController
                 'can_assess_issues' => $data['can_assess_issues'] ?? true,
                 'can_resolve_issues' => $data['can_resolve_issues'] ?? true,
                 'can_request_resources' => $data['can_request_resources'] ?? false,
-                'profile_image' => $data['profile_image'] ?? null,
+                'profile_image' => $profileImageUrl,
                 'id_type' => $data['id_type'] ?? null,
                 'id_number' => $data['id_number'] ?? null,
                 'address' => $data['address'] ?? null,
@@ -165,7 +177,19 @@ class TaskForceController
                 return ResponseHelper::error($response, 'Task force member not found', 404);
             }
 
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
+
+            // Handle profile image upload
+            $profileImageUrl = $data['profile_image'] ?? $member->profile_image;
+            $imageFile = $uploadedFiles['profile_image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $profileImageUrl = $this->uploadService->replaceFile($imageFile, $member->profile_image, 'image', 'task-force');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Profile image upload failed: ' . $e->getMessage(), 400);
+                }
+            }
 
             // Update user data
             if ($member->user) {
@@ -188,7 +212,7 @@ class TaskForceController
                 'can_assess_issues' => $data['can_assess_issues'] ?? $member->can_assess_issues,
                 'can_resolve_issues' => $data['can_resolve_issues'] ?? $member->can_resolve_issues,
                 'can_request_resources' => $data['can_request_resources'] ?? $member->can_request_resources,
-                'profile_image' => $data['profile_image'] ?? $member->profile_image,
+                'profile_image' => $profileImageUrl,
                 'id_type' => $data['id_type'] ?? $member->id_type,
                 'id_number' => $data['id_number'] ?? $member->id_number,
                 'address' => $data['address'] ?? $member->address,
@@ -373,11 +397,42 @@ class TaskForceController
                 return ResponseHelper::error($response, 'Issue not assigned to you', 404);
             }
 
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
 
             // Validation
             if (empty($data['assessment_summary'])) {
                 return ResponseHelper::error($response, 'Assessment summary is required', 400);
+            }
+
+            // Handle images upload
+            $imagesJson = $data['images'] ?? null;
+            $imageFiles = $uploadedFiles['images'] ?? [];
+            if (!empty($imageFiles)) {
+                if (!is_array($imageFiles)) $imageFiles = [$imageFiles];
+                try {
+                    $uploadedImages = $this->uploadService->uploadMultipleFiles($imageFiles, 'image', 'assessments');
+                    if (!empty($uploadedImages)) {
+                        $imagesJson = json_encode($uploadedImages);
+                    }
+                } catch (Exception $e) {
+                    error_log('Assessment images upload failed: ' . $e->getMessage());
+                }
+            }
+
+            // Handle documents upload
+            $documentsJson = $data['documents'] ?? null;
+            $documentFiles = $uploadedFiles['documents'] ?? [];
+            if (!empty($documentFiles)) {
+                if (!is_array($documentFiles)) $documentFiles = [$documentFiles];
+                try {
+                    $uploadedDocs = $this->uploadService->uploadMultipleFiles($documentFiles, 'document', 'assessments');
+                    if (!empty($uploadedDocs)) {
+                        $documentsJson = json_encode($uploadedDocs);
+                    }
+                } catch (Exception $e) {
+                    error_log('Assessment documents upload failed: ' . $e->getMessage());
+                }
             }
 
             // Create assessment report
@@ -391,8 +446,8 @@ class TaskForceController
                 'estimated_cost' => $data['estimated_cost'] ?? null,
                 'estimated_duration' => $data['estimated_duration'] ?? null,
                 'required_resources' => $data['required_resources'] ?? null,
-                'images' => $data['images'] ?? null,
-                'documents' => $data['documents'] ?? null,
+                'images' => $imagesJson,
+                'documents' => $documentsJson,
                 'location_verified' => $data['location_verified'] ?? null,
                 'gps_coordinates' => $data['gps_coordinates'] ?? null,
                 'recommendations' => $data['recommendations'] ?? null,
@@ -475,11 +530,57 @@ class TaskForceController
                 return ResponseHelper::error($response, 'Issue not assigned to you', 404);
             }
 
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
 
             // Validation
             if (empty($data['resolution_summary'])) {
                 return ResponseHelper::error($response, 'Resolution summary is required', 400);
+            }
+
+            // Handle before_images upload
+            $beforeImagesJson = $data['before_images'] ?? null;
+            $beforeImageFiles = $uploadedFiles['before_images'] ?? [];
+            if (!empty($beforeImageFiles)) {
+                if (!is_array($beforeImageFiles)) $beforeImageFiles = [$beforeImageFiles];
+                try {
+                    $uploadedBefore = $this->uploadService->uploadMultipleFiles($beforeImageFiles, 'image', 'resolutions/before');
+                    if (!empty($uploadedBefore)) {
+                        $beforeImagesJson = json_encode($uploadedBefore);
+                    }
+                } catch (Exception $e) {
+                    error_log('Before images upload failed: ' . $e->getMessage());
+                }
+            }
+
+            // Handle after_images upload
+            $afterImagesJson = $data['after_images'] ?? null;
+            $afterImageFiles = $uploadedFiles['after_images'] ?? [];
+            if (!empty($afterImageFiles)) {
+                if (!is_array($afterImageFiles)) $afterImageFiles = [$afterImageFiles];
+                try {
+                    $uploadedAfter = $this->uploadService->uploadMultipleFiles($afterImageFiles, 'image', 'resolutions/after');
+                    if (!empty($uploadedAfter)) {
+                        $afterImagesJson = json_encode($uploadedAfter);
+                    }
+                } catch (Exception $e) {
+                    error_log('After images upload failed: ' . $e->getMessage());
+                }
+            }
+
+            // Handle documents upload
+            $documentsJson = $data['documents'] ?? null;
+            $documentFiles = $uploadedFiles['documents'] ?? [];
+            if (!empty($documentFiles)) {
+                if (!is_array($documentFiles)) $documentFiles = [$documentFiles];
+                try {
+                    $uploadedDocs = $this->uploadService->uploadMultipleFiles($documentFiles, 'document', 'resolutions');
+                    if (!empty($uploadedDocs)) {
+                        $documentsJson = json_encode($uploadedDocs);
+                    }
+                } catch (Exception $e) {
+                    error_log('Resolution documents upload failed: ' . $e->getMessage());
+                }
             }
 
             // Create resolution report
@@ -492,9 +593,9 @@ class TaskForceController
                 'completion_date' => $data['completion_date'] ?? date('Y-m-d'),
                 'actual_cost' => $data['actual_cost'] ?? null,
                 'resources_used' => $data['resources_used'] ?? null,
-                'before_images' => $data['before_images'] ?? null,
-                'after_images' => $data['after_images'] ?? null,
-                'documents' => $data['documents'] ?? null,
+                'before_images' => $beforeImagesJson,
+                'after_images' => $afterImagesJson,
+                'documents' => $documentsJson,
                 'challenges_faced' => $data['challenges_faced'] ?? null,
                 'additional_notes' => $data['additional_notes'] ?? null,
                 'requires_followup' => $data['requires_followup'] ?? false,
