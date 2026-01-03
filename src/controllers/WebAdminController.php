@@ -10,8 +10,10 @@ use App\Models\Officer;
 use App\Models\Agent;
 use App\Helper\ResponseHelper;
 use App\Services\AuthService;
+use App\Services\UploadService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UploadedFileInterface;
 use Exception;
 
 /**
@@ -23,10 +25,12 @@ use Exception;
 class WebAdminController
 {
     private AuthService $authService;
+    private UploadService $uploadService;
 
-    public function __construct(AuthService $authService)
+    public function __construct(AuthService $authService, UploadService $uploadService)
     {
         $this->authService = $authService;
+        $this->uploadService = $uploadService;
     }
 
     /**

@@ -9,8 +9,10 @@ use App\Models\Agent;
 use App\Models\Officer;
 use App\Helper\ResponseHelper;
 use App\Services\AuthService;
+use App\Services\UploadService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UploadedFileInterface;
 use Exception;
 
 /**
@@ -21,10 +23,12 @@ use Exception;
 class AgentController
 {
     private AuthService $authService;
+    private UploadService $uploadService;
 
-    public function __construct(AuthService $authService)
+    public function __construct(AuthService $authService, UploadService $uploadService)
     {
         $this->authService = $authService;
+        $this->uploadService = $uploadService;
     }
 
     /**
@@ -89,7 +93,8 @@ class AgentController
     public function store(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
 
             // Validation
             if (empty($data['name'])) {
@@ -100,6 +105,17 @@ class AgentController
             }
             if (User::emailExists($data['email'])) {
                 return ResponseHelper::error($response, 'Email already exists', 400);
+            }
+
+            // Handle profile image upload
+            $profileImageUrl = $data['profile_image'] ?? null;
+            $imageFile = $uploadedFiles['profile_image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $profileImageUrl = $this->uploadService->uploadFile($imageFile, 'image', 'agents');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Profile image upload failed: ' . $e->getMessage(), 400);
+                }
             }
 
             // Generate password if not provided
@@ -127,7 +143,7 @@ class AgentController
                 'can_submit_reports' => $data['can_submit_reports'] ?? true,
                 'can_collect_data' => $data['can_collect_data'] ?? true,
                 'can_register_residents' => $data['can_register_residents'] ?? false,
-                'profile_image' => $data['profile_image'] ?? null,
+                'profile_image' => $profileImageUrl,
                 'id_type' => $data['id_type'] ?? null,
                 'id_number' => $data['id_number'] ?? null,
                 'id_verified' => false,
@@ -158,7 +174,19 @@ class AgentController
                 return ResponseHelper::error($response, 'Agent not found', 404);
             }
 
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
+
+            // Handle profile image upload
+            $profileImageUrl = $data['profile_image'] ?? $agent->profile_image;
+            $imageFile = $uploadedFiles['profile_image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $profileImageUrl = $this->uploadService->replaceFile($imageFile, $agent->profile_image, 'image', 'agents');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Profile image upload failed: ' . $e->getMessage(), 400);
+                }
+            }
 
             // Update user data
             if ($agent->user) {
@@ -180,7 +208,7 @@ class AgentController
                 'can_submit_reports' => $data['can_submit_reports'] ?? $agent->can_submit_reports,
                 'can_collect_data' => $data['can_collect_data'] ?? $agent->can_collect_data,
                 'can_register_residents' => $data['can_register_residents'] ?? $agent->can_register_residents,
-                'profile_image' => $data['profile_image'] ?? $agent->profile_image,
+                'profile_image' => $profileImageUrl,
                 'id_type' => $data['id_type'] ?? $agent->id_type,
                 'id_number' => $data['id_number'] ?? $agent->id_number,
                 'address' => $data['address'] ?? $agent->address,

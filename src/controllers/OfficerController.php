@@ -8,8 +8,10 @@ use App\Models\User;
 use App\Models\Officer;
 use App\Helper\ResponseHelper;
 use App\Services\AuthService;
+use App\Services\UploadService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UploadedFileInterface;
 use Exception;
 
 /**
@@ -20,10 +22,12 @@ use Exception;
 class OfficerController
 {
     private AuthService $authService;
+    private UploadService $uploadService;
 
-    public function __construct(AuthService $authService)
+    public function __construct(AuthService $authService, UploadService $uploadService)
     {
         $this->authService = $authService;
+        $this->uploadService = $uploadService;
     }
 
     /**
@@ -80,7 +84,8 @@ class OfficerController
     public function store(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
 
             // Validation
             if (empty($data['name'])) {
@@ -91,6 +96,17 @@ class OfficerController
             }
             if (User::emailExists($data['email'])) {
                 return ResponseHelper::error($response, 'Email already exists', 400);
+            }
+
+            // Handle profile image upload
+            $profileImageUrl = $data['profile_image'] ?? null;
+            $imageFile = $uploadedFiles['profile_image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $profileImageUrl = $this->uploadService->uploadFile($imageFile, 'image', 'officers');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Profile image upload failed: ' . $e->getMessage(), 400);
+                }
             }
 
             // Generate password if not provided
@@ -120,7 +136,7 @@ class OfficerController
                 'can_manage_reports' => $data['can_manage_reports'] ?? true,
                 'can_manage_events' => $data['can_manage_events'] ?? false,
                 'can_publish_content' => $data['can_publish_content'] ?? false,
-                'profile_image' => $data['profile_image'] ?? null,
+                'profile_image' => $profileImageUrl,
                 'bio' => $data['bio'] ?? null,
                 'office_location' => $data['office_location'] ?? null,
                 'office_phone' => $data['office_phone'] ?? null,
@@ -148,7 +164,19 @@ class OfficerController
                 return ResponseHelper::error($response, 'Officer not found', 404);
             }
 
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
+
+            // Handle profile image upload
+            $profileImageUrl = $data['profile_image'] ?? $officer->profile_image;
+            $imageFile = $uploadedFiles['profile_image'] ?? null;
+            if ($imageFile instanceof UploadedFileInterface && $imageFile->getError() === UPLOAD_ERR_OK) {
+                try {
+                    $profileImageUrl = $this->uploadService->replaceFile($imageFile, $officer->profile_image, 'image', 'officers');
+                } catch (Exception $e) {
+                    return ResponseHelper::error($response, 'Profile image upload failed: ' . $e->getMessage(), 400);
+                }
+            }
 
             // Update user data
             if ($officer->user) {
@@ -172,7 +200,7 @@ class OfficerController
                 'can_manage_reports' => $data['can_manage_reports'] ?? $officer->can_manage_reports,
                 'can_manage_events' => $data['can_manage_events'] ?? $officer->can_manage_events,
                 'can_publish_content' => $data['can_publish_content'] ?? $officer->can_publish_content,
-                'profile_image' => $data['profile_image'] ?? $officer->profile_image,
+                'profile_image' => $profileImageUrl,
                 'bio' => $data['bio'] ?? $officer->bio,
                 'office_location' => $data['office_location'] ?? $officer->office_location,
                 'office_phone' => $data['office_phone'] ?? $officer->office_phone,

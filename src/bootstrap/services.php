@@ -4,6 +4,7 @@
  * Service Container Registration
  * 
  * Registers all services, controllers, and middleware with the DI container
+ * For Constituency Development Hub
  */
 
 use App\Services\EmailService;
@@ -11,22 +12,25 @@ use App\Services\SMSService;
 use App\Services\AuthService;
 use App\Services\PasswordResetService;
 use App\Services\VerificationService;
+use App\Services\UploadService;
 use App\Controllers\AuthController;
 use App\Controllers\UserController;
-use App\Controllers\OrganizerController;
 use App\Controllers\PasswordResetController;
-use App\Controllers\AttendeeController;
-use App\Controllers\EventController;
-use App\Controllers\EventImageController;
-use App\Controllers\TicketTypeController;
-use App\Controllers\OrderController;
-use App\Controllers\TicketController;
-use App\Controllers\ScannerController;
-use App\Controllers\PosController;
-use App\Controllers\AwardController;
-use App\Controllers\AwardCategoryController;
-use App\Controllers\AwardNomineeController;
-use App\Controllers\AwardVoteController;
+use App\Controllers\UploadController;
+use App\Controllers\BlogPostController;
+use App\Controllers\ConstituencyEventController;
+use App\Controllers\HeroSlideController;
+use App\Controllers\ProjectController;
+use App\Controllers\IssueReportController;
+use App\Controllers\AgentController;
+use App\Controllers\OfficerController;
+use App\Controllers\TaskForceController;
+use App\Controllers\WebAdminController;
+use App\Controllers\SectorController;
+use App\Controllers\FAQController;
+use App\Controllers\CommunityStatController;
+use App\Controllers\ContactInfoController;
+use App\Controllers\NewsletterController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Middleware\JsonBodyParserMiddleware;
@@ -64,8 +68,8 @@ return function ($container) {
         return new \App\Services\TemplateEngine();
     });
 
-    $container->set(\App\Services\UploadService::class, function () {
-        return new \App\Services\UploadService();
+    $container->set(UploadService::class, function () {
+        return new UploadService();
     });
 
     $container->set(\App\Services\NotificationService::class, function ($container) {
@@ -83,16 +87,13 @@ return function ($container) {
     
     // ==================== CONTROLLERS ====================
     
+    // Auth & User Controllers
     $container->set(AuthController::class, function ($container) {
         return new AuthController($container->get(AuthService::class));
     });
     
     $container->set(UserController::class, function () {
         return new UserController();
-    });
-
-    $container->set(OrganizerController::class, function () {
-        return new OrganizerController();
     });
     
     $container->set(PasswordResetController::class, function ($container) {
@@ -102,60 +103,92 @@ return function ($container) {
         );
     });
 
-    $container->set(AttendeeController::class, function () {
-        return new AttendeeController();
-    });
-
-    $container->set(EventController::class, function () {
-        return new EventController();
-    });
-
-    $container->set(EventImageController::class, function ($container) {
-        return new EventImageController(
-            $container->get(\App\Services\UploadService::class)
+    // Upload Controller
+    $container->set(UploadController::class, function ($container) {
+        return new UploadController(
+            $container->get(UploadService::class)
         );
     });
 
-    $container->set(TicketTypeController::class, function () {
-        return new TicketTypeController();
-    });
-
-   $container->set(OrderController::class, function ($container) {
-        return new OrderController(
-            $container->get(\App\Services\NotificationService::class)
+    // CMS Controllers with UploadService
+    $container->set(BlogPostController::class, function ($container) {
+        return new BlogPostController(
+            $container->get(UploadService::class)
         );
     });
 
-    $container->set(TicketController::class, function () {
-        return new TicketController();
-    });
-
-    $container->set(ScannerController::class, function () {
-        return new ScannerController();
-    });
-
-    $container->set(PosController::class, function () {
-        return new PosController();
-    });
-
-    $container->set(AwardController::class, function ($container) {
-        return new AwardController(
-            $container->get(\App\Services\UploadService::class)
+    $container->set(ConstituencyEventController::class, function ($container) {
+        return new ConstituencyEventController(
+            $container->get(UploadService::class)
         );
     });
 
-    $container->set(AwardCategoryController::class, function () {
-        return new AwardCategoryController();
-    });
-
-    $container->set(AwardNomineeController::class, function ($container) {
-        return new AwardNomineeController(
-            $container->get(\App\Services\UploadService::class)
+    $container->set(HeroSlideController::class, function ($container) {
+        return new HeroSlideController(
+            $container->get(UploadService::class)
         );
     });
 
-    $container->set(AwardVoteController::class, function () {
-        return new AwardVoteController();
+    $container->set(ProjectController::class, function ($container) {
+        return new ProjectController(
+            $container->get(UploadService::class)
+        );
+    });
+
+    $container->set(IssueReportController::class, function ($container) {
+        return new IssueReportController(
+            $container->get(UploadService::class)
+        );
+    });
+
+    // Role-based Controllers with AuthService and UploadService
+    $container->set(AgentController::class, function ($container) {
+        return new AgentController(
+            $container->get(AuthService::class),
+            $container->get(UploadService::class)
+        );
+    });
+
+    $container->set(OfficerController::class, function ($container) {
+        return new OfficerController(
+            $container->get(AuthService::class),
+            $container->get(UploadService::class)
+        );
+    });
+
+    $container->set(TaskForceController::class, function ($container) {
+        return new TaskForceController(
+            $container->get(AuthService::class),
+            $container->get(UploadService::class)
+        );
+    });
+
+    $container->set(WebAdminController::class, function ($container) {
+        return new WebAdminController(
+            $container->get(AuthService::class),
+            $container->get(UploadService::class)
+        );
+    });
+
+    // Other CMS Controllers
+    $container->set(SectorController::class, function () {
+        return new SectorController();
+    });
+
+    $container->set(FAQController::class, function () {
+        return new FAQController();
+    });
+
+    $container->set(CommunityStatController::class, function () {
+        return new CommunityStatController();
+    });
+
+    $container->set(ContactInfoController::class, function () {
+        return new ContactInfoController();
+    });
+
+    $container->set(NewsletterController::class, function () {
+        return new NewsletterController();
     });
     
     // ==================== MIDDLEWARES ====================
