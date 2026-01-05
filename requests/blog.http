@@ -181,8 +181,11 @@ Authorization: Bearer {{authToken}}
 ###
 
 ### Delete blog post
-DELETE {{baseUrl}}/admin/blog/1
+DELETE http://localhost:8080/v1/admin/blog/1
 Content-Type: application/json
-Authorization: Bearer {{authToken}}
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJldmVudGljLWFwaSIsImlhdCI6MTc2NzI4ODQyNiwiZXhwIjoxMDAwMDAwMDE3NjcyODg0MjUsImRhdGEiOnsiaWQiOjE1LCJlbWFpbCI6ImpvaG5AZXhhbXBsZS5jb20iLCJyb2xlIjoid2ViX2FkbWluIiwic3RhdHVzIjoiYWN0aXZlIn19.b5qLBDBWOxOOEcdy58hOd7zYulH9akEUNL8VT8RUrtQ
 
+{
+    "id": 1
+}
 ###
