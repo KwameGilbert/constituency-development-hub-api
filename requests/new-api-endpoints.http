@@ -1,0 +1,485 @@
+### ============================================================
+### CONSTITUENCY DEVELOPMENT HUB - API REQUESTS
+### Base URL: http://localhost:8000/v1
+### Updated: 2026-01-05 (Based on API Specifications)
+### ============================================================
+
+### Variables
+@baseUrl = http://localhost:8000/v1
+@adminToken = YOUR_ADMIN_JWT_TOKEN_HERE
+
+### ============================================================
+### PROFILE MANAGEMENT (All Authenticated Users)
+### ============================================================
+
+### Get Current User Profile
+GET {{baseUrl}}/profile
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Profile retrieved successfully",
+#     "data": {
+#         "user": {
+#             "id": 1,
+#             "name": "John Doe",
+#             "email": "john@example.com",
+#             "phone": "+233242560140",
+#             "avatar": "https://example.com/avatars/john.jpg",
+#             "role": "officer",
+#             "status": "active",
+#             "location": "Sefwi Wiawso",
+#             "bio": "Experienced community development officer",
+#             "created_at": "2025-01-01T10:00:00Z",
+#             "last_login": "2026-01-05T09:00:00Z",
+#             "preferences": {
+#                 "email_notifications": true,
+#                 "sms_notifications": false,
+#                 "language": "en",
+#                 "timezone": "Africa/Accra"
+#             }
+#         }
+#     }
+# }
+
+###
+
+### Update Profile
+PUT {{baseUrl}}/profile
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+    "name": "John Doe Jr.",
+    "phone": "+233242560999",
+    "bio": "Updated bio",
+    "preferences": {
+        "email_notifications": false,
+        "sms_notifications": true
+    }
+}
+
+###
+
+### Upload Avatar (multipart/form-data)
+# Use a tool like Postman for file uploads
+# POST {{baseUrl}}/profile/avatar
+# Authorization: Bearer {{adminToken}}
+# Content-Type: multipart/form-data
+# Form field: avatar (file, image/jpeg or image/png or image/webp, max 5MB)
+
+###
+
+### Change Password
+PUT {{baseUrl}}/profile/password
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+    "current_password": "OldPassword123!",
+    "new_password": "NewSecurePassword123!",
+    "new_password_confirmation": "NewSecurePassword123!"
+}
+
+###
+
+### Get Activity History
+GET {{baseUrl}}/profile/activity?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Activity history retrieved successfully",
+#     "data": {
+#         "activities": [
+#             {
+#                 "id": 1,
+#                 "action": "profile_update",
+#                 "entity_type": "user",
+#                 "entity_id": 1,
+#                 "details": {"updated_fields": ["name", "bio"]},
+#                 "ip_address": "192.168.1.1",
+#                 "created_at": "2026-01-05T09:00:00Z"
+#             }
+#         ],
+#         "pagination": {
+#             "page": 1,
+#             "limit": 20,
+#             "total": 45,
+#             "total_pages": 3
+#         }
+#     }
+# }
+
+###
+
+### ============================================================
+### ADMIN DASHBOARD STATISTICS
+### ============================================================
+
+### Get Admin Dashboard Stats
+GET {{baseUrl}}/admin/dashboard/stats
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Dashboard statistics retrieved",
+#     "data": {
+#         "overview": {
+#             "total_issues": 450,
+#             "active_users": 42,
+#             "total_projects": 45,
+#             "total_budget": 5000000
+#         },
+#         "users_by_role": {
+#             "admin": 3,
+#             "web_admin": 3,
+#             "officer": 8,
+#             "agent": 25,
+#             "task_force": 6
+#         },
+#         "issues": {
+#             "pending_review": 12,
+#             "assigned": 35,
+#             "in_progress": 85,
+#             "resolved": 305,
+#             "closed": 13
+#         },
+#         "projects": {
+#             "planning": 8,
+#             "ongoing": 15,
+#             "completed": 18,
+#             "on_hold": 4
+#         }
+#     }
+# }
+
+###
+
+### ============================================================
+### OFFICER DASHBOARD STATISTICS
+### ============================================================
+
+### Get Officer Dashboard Stats
+GET {{baseUrl}}/officer/dashboard/stats
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Officer dashboard statistics",
+#     "data": {
+#         "my_issues": {
+#             "total": 25,
+#             "pending_review": 5,
+#             "in_progress": 12,
+#             "resolved": 8
+#         },
+#         "performance": {
+#             "average_review_time_hours": 6.5,
+#             "issues_reviewed_this_month": 18
+#         },
+#         "team": {
+#             "total_agents": 8,
+#             "active_agents": 7
+#         }
+#     }
+# }
+
+###
+
+### ============================================================
+### AGENT DASHBOARD STATISTICS
+### ============================================================
+
+### Get Agent Dashboard Stats
+GET {{baseUrl}}/agent/dashboard/stats
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Agent dashboard statistics",
+#     "data": {
+#         "my_issues": {
+#             "total": 12,
+#             "pending": 3,
+#             "in_progress": 5,
+#             "resolved": 4
+#         },
+#         "performance": {
+#             "average_response_time_hours": 2.5,
+#             "issues_handled_this_month": 8,
+#             "satisfaction_rating": 4.7
+#         }
+#     }
+# }
+
+###
+
+### ============================================================
+### TASK FORCE DASHBOARD STATISTICS
+### ============================================================
+
+### Get Task Force Dashboard Stats
+GET {{baseUrl}}/task-force/dashboard/stats
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Task force dashboard statistics",
+#     "data": {
+#         "my_task_force": {
+#             "name": "Infrastructure Task Force",
+#             "total_members": 5,
+#             "active_assignments": 12
+#         },
+#         "my_assignments": {
+#             "total": 5,
+#             "pending_assessment": 2,
+#             "in_progress": 2,
+#             "completed": 1
+#         },
+#         "team_performance": {
+#             "average_completion_days": 8.5,
+#             "assignments_completed_this_month": 6
+#         }
+#     }
+# }
+
+###
+
+### ============================================================
+### ADMIN USER MANAGEMENT
+### ============================================================
+
+### Get All Users (with filtering and pagination)
+# Query Params: ?role=officer|agent|task_force|web_admin|admin&status=active|inactive|suspended&search=query&page=1&limit=20
+GET {{baseUrl}}/admin/users?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "Users retrieved successfully",
+#     "data": {
+#         "users": [
+#             {
+#                 "id": 1,
+#                 "name": "John Doe",
+#                 "email": "john@example.com",
+#                 "phone": "+233242560140",
+#                 "role": "officer",
+#                 "status": "active",
+#                 "avatar": "https://example.com/avatars/john.jpg",
+#                 "location": "Sefwi Wiawso",
+#                 "created_at": "2025-01-01T10:00:00Z",
+#                 "last_login": "2026-01-04T15:30:00Z",
+#                 "issues_assigned": 15,
+#                 "issues_resolved": 10
+#             }
+#         ],
+#         "pagination": {
+#             "page": 1,
+#             "limit": 20,
+#             "total": 45,
+#             "total_pages": 3
+#         }
+#     }
+# }
+
+###
+
+### Filter Users by Role
+GET {{baseUrl}}/admin/users?role=agent&page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+###
+
+### Filter Users by Status
+GET {{baseUrl}}/admin/users?status=active&page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+###
+
+### Search Users
+GET {{baseUrl}}/admin/users?search=john&page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+###
+
+### Get Single User Details
+GET {{baseUrl}}/admin/users/1
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "User retrieved successfully",
+#     "data": {
+#         "user": {
+#             "id": 1,
+#             "name": "John Doe",
+#             "email": "john@example.com",
+#             "phone": "+233242560140",
+#             "role": "officer",
+#             "status": "active",
+#             "avatar": "https://example.com/avatars/john.jpg",
+#             "location": "Sefwi Wiawso",
+#             "bio": "Experienced field officer with 5 years in community development",
+#             "created_at": "2025-01-01T10:00:00Z",
+#             "updated_at": "2026-01-03T12:00:00Z",
+#             "last_login": "2026-01-04T15:30:00Z",
+#             "permissions": ["view_issues", "update_issues", "create_reports"],
+#             "statistics": {
+#                 "total_issues": 15,
+#                 "resolved_issues": 10,
+#                 "pending_issues": 3,
+#                 "in_progress": 2
+#             }
+#         }
+#     }
+# }
+
+###
+
+### Get User Statistics
+GET {{baseUrl}}/admin/users/stats
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "User statistics retrieved successfully",
+#     "data": {
+#         "total_users": 45,
+#         "active_users": 38,
+#         "inactive_users": 5,
+#         "suspended_users": 2,
+#         "by_role": {
+#             "admin": 3,
+#             "officer": 8,
+#             "agent": 25,
+#             "task_force": 6,
+#             "web_admin": 3
+#         },
+#         "recent_registrations": 5,
+#         "last_30_days_logins": 42
+#     }
+# }
+
+###
+
+### Create New User
+POST {{baseUrl}}/admin/users
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "phone": "+233245123456",
+    "password": "SecureP@ss123",
+    "role": "agent",
+    "location": "Asofan",
+    "status": "active"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "User created successfully",
+#     "data": {
+#         "user": {
+#             "id": 46,
+#             "name": "Jane Smith",
+#             "email": "jane@example.com",
+#             "phone": "+233245123456",
+#             "role": "agent",
+#             "status": "active",
+#             "location": "Asofan",
+#             "created_at": "2026-01-05T10:00:00Z"
+#         }
+#     }
+# }
+
+###
+
+### Update User Details
+PUT {{baseUrl}}/admin/users/1
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+    "name": "Jane Smith Updated",
+    "phone": "+233245123999",
+    "location": "Sefwi Wiawso",
+    "bio": "Updated bio"
+}
+
+###
+
+### Update User Role
+PUT {{baseUrl}}/admin/users/1/role
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+    "role": "officer"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "User role updated successfully",
+#     "data": {
+#         "user": {
+#             "id": 46,
+#             "role": "officer",
+#             "updated_at": "2026-01-05T11:30:00Z"
+#         }
+#     }
+# }
+
+###
+
+### Update User Status
+PUT {{baseUrl}}/admin/users/1/status
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+    "status": "inactive",
+    "reason": "Temporarily unavailable"
+}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "User status updated successfully",
+#     "data": {
+#         "user": {
+#             "id": 46,
+#             "status": "inactive",
+#             "updated_at": "2026-01-05T12:00:00Z"
+#         }
+#     }
+# }
+
+###
+
+### Delete User
+DELETE {{baseUrl}}/admin/users/46
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+# {
+#     "success": true,
+#     "message": "User deleted successfully"
+# }
+
+###

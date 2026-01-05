@@ -1,9 +1,0 @@
-###
-POST http://localhost:3001/v1/auth/login
-Content-Type: application/json
-
-{
-    "email": "kwamegilbert1114@gmail.com",
-    "password": "password"
-}
-###

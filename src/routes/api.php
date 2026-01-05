@@ -10,6 +10,7 @@ return function ($app): void {
         // Auth & Users
         '/v1/auth' => ROUTE . 'v1/AuthRoute.php',
         '/v1/users' => ROUTE . 'v1/UserRoute.php',
+        '/v1/profile' => ROUTE . 'v1/ProfileRoute.php',
 
         // Public CMS Routes
         '/v1/hero-slides' => ROUTE . 'v1/HeroSlideRoute.php',
@@ -21,15 +22,19 @@ return function ($app): void {
         '/v1/stats' => ROUTE . 'v1/CommunityStatRoute.php',
         '/v1/contact' => ROUTE . 'v1/ContactInfoRoute.php',
         '/v1/newsletter' => ROUTE . 'v1/NewsletterRoute.php',
-
         '/v1/issues' => ROUTE . 'v1/IssueReportRoute.php',
 
-        // Role-specific dashboard routes
+        // Role-specific dashboard routes (more specific first)
+        '/v1/officer/dashboard' => ROUTE . 'v1/DashboardRoute.php',
         '/v1/officer' => ROUTE . 'v1/OfficerRoute.php',
+        '/v1/agent/dashboard' => ROUTE . 'v1/DashboardRoute.php',
         '/v1/agent' => ROUTE . 'v1/AgentRoute.php',
+        '/v1/task-force/dashboard' => ROUTE . 'v1/DashboardRoute.php',
         '/v1/task-force' => ROUTE . 'v1/TaskForceRoute.php',
 
         // Admin routes (more specific first)
+        '/v1/admin/dashboard' => ROUTE . 'v1/DashboardRoute.php',
+        '/v1/admin/users' => ROUTE . 'v1/UserRoute.php',
         '/v1/admin/hero-slides' => ROUTE . 'v1/HeroSlideRoute.php',
         '/v1/admin/blog' => ROUTE . 'v1/BlogPostRoute.php',
         '/v1/admin/events' => ROUTE . 'v1/EventRoute.php',
@@ -44,8 +49,6 @@ return function ($app): void {
         '/v1/admin/officers' => ROUTE . 'v1/OfficerRoute.php',
         '/v1/admin/agents' => ROUTE . 'v1/AgentRoute.php',
         '/v1/admin/task-force' => ROUTE . 'v1/TaskForceRoute.php',
-
-
     ];
 
     $loadedFiles = [];
