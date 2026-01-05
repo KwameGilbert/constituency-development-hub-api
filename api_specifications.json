@@ -1,0 +1,735 @@
+{
+  "project": "Constituency Development Hub",
+  "version": "1.0",
+  "date": "2026-01-05",
+  "summary": {
+    "total_missing_endpoints": 67,
+    "categories": 12,
+    "existing_services": 11,
+    "priority_levels": {
+      "critical": 3,
+      "high": 3,
+      "medium": 4,
+      "low": 2
+    }
+  },
+  "existing_integrations": [
+    "announcements-service",
+    "auth-service",
+    "blog-service",
+    "carousel-service",
+    "dashboard-service",
+    "employment-service",
+    "events-service",
+    "ideas-service",
+    "issues-service",
+    "projects-service",
+    "upload-service"
+  ],
+  "missing_api_categories": [
+    {
+      "id": 1,
+      "name": "User Management API",
+      "priority": "CRITICAL",
+      "description": "CRUD operations for system users with role-based management",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/admin/users",
+          "description": "List all users with filtering and pagination",
+          "auth_required": true,
+          "roles": ["admin", "web_admin"],
+          "query_parameters": {
+            "page": {"type": "number", "required": false, "default": 1},
+            "limit": {"type": "number", "required": false, "default": 20},
+            "role": {"type": "string", "required": false, "enum": ["admin", "officer", "agent", "task_force", "web_admin"]},
+            "status": {"type": "string", "required": false, "enum": ["active", "inactive", "suspended"]},
+            "search": {"type": "string", "required": false}
+          },
+          "response_example": {
+            "success": true,
+            "message": "Users retrieved successfully",
+            "data": {
+              "users": [
+                {
+                  "id": 1,
+                  "name": "John Doe",
+                  "email": "john@example.com",
+                  "phone": "+233242560140",
+                  "role": "officer",
+                  "status": "active",
+                  "avatar": "https://example.com/avatars/john.jpg",
+                  "location": "Sefwi Wiawso",
+                  "created_at": "2025-01-01T10:00:00Z",
+                  "last_login": "2026-01-04T15:30:00Z",
+                  "issues_assigned": 15,
+                  "issues_resolved": 10
+                }
+              ],
+              "pagination": {
+                "page": 1,
+                "limit": 20,
+                "total": 45,
+                "total_pages": 3
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/admin/users/:id",
+          "description": "Get single user details",
+          "auth_required": true,
+          "roles": ["admin", "web_admin"],
+          "path_parameters": {
+            "id": {"type": "number", "required": true}
+          },
+          "response_example": {
+            "success": true,
+            "message": "User retrieved successfully",
+            "data": {
+              "user": {
+                "id": 1,
+                "name": "John Doe",
+                "email": "john@example.com",
+                "phone": "+233242560140",
+                "role": "officer",
+                "status": "active",
+                "avatar": "https://example.com/avatars/john.jpg",
+                "location": "Sefwi Wiawso",
+                "bio": "Experienced field officer with 5 years in community development",
+                "created_at": "2025-01-01T10:00:00Z",
+                "updated_at": "2026-01-03T12:00:00Z",
+                "last_login": "2026-01-04T15:30:00Z",
+                "permissions": ["view_issues", "update_issues", "create_reports"],
+                "statistics": {
+                  "total_issues": 15,
+                  "resolved_issues": 10,
+                  "pending_issues": 3,
+                  "in_progress": 2
+                }
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/admin/users",
+          "description": "Create new user",
+          "auth_required": true,
+          "roles": ["admin", "web_admin"],
+          "request_body": {
+            "name": {"type": "string", "required": true, "min_length": 3, "max_length": 100},
+            "email": {"type": "string", "required": true, "format": "email", "unique": true},
+            "phone": {"type": "string", "required": true, "format": "phone"},
+            "password": {"type": "string", "required": true, "min_length": 8, "pattern": "Must include uppercase, lowercase, and number"},
+            "role": {"type": "string", "required": true, "enum": ["admin", "officer", "agent", "task_force", "web_admin"]},
+            "location": {"type": "string", "required": false},
+            "status": {"type": "string", "required": false, "default": "active", "enum": ["active", "inactive"]}
+          },
+          "request_example": {
+            "name": "Jane Smith",
+            "email": "jane@example.com",
+            "phone": "+233245123456",
+            "password": "SecureP@ss123",
+            "role": "agent",
+            "location": "Asofan",
+            "status": "active"
+          },
+          "response_example": {
+            "success": true,
+            "message": "User created successfully",
+            "data": {
+              "user": {
+                "id": 46,
+                "name": "Jane Smith",
+                "email": "jane@example.com",
+                "phone": "+233245123456",
+                "role": "agent",
+                "status": "active",
+                "location": "Asofan",
+                "created_at": "2026-01-05T10:00:00Z"
+              }
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/admin/users/:id",
+          "description": "Update user details",
+          "auth_required": true,
+          "roles": ["admin", "web_admin"],
+          "path_parameters": {
+            "id": {"type": "number", "required": true}
+          },
+          "request_body": {
+            "name": {"type": "string", "required": false},
+            "phone": {"type": "string", "required": false},
+            "location": {"type": "string", "required": false},
+            "bio": {"type": "string", "required": false}
+          },
+          "request_example": {
+            "name": "Jane Smith Updated",
+            "phone": "+233245123999",
+            "location": "Sefwi Wiawso",
+            "bio": "Updated bio"
+          },
+          "response_example": {
+            "success": true,
+            "message": "User updated successfully",
+            "data": {
+              "user": {
+                "id": 46,
+                "name": "Jane Smith Updated",
+                "updated_at": "2026-01-05T11:00:00Z"
+              }
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/admin/users/:id",
+          "description": "Delete user",
+          "auth_required": true,
+          "roles": ["admin", "web_admin"],
+          "path_parameters": {
+            "id": {"type": "number", "required": true}
+          },
+          "response_example": {
+            "success": true,
+            "message": "User deleted successfully"
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/admin/users/:id/role",
+          "description": "Update user role",
+          "auth_required": true,
+          "roles": ["admin", "web_admin"],
+          "path_parameters": {
+            "id": {"type": "number", "required": true}
+          },
+          "request_body": {
+            "role": {"type": "string", "required": true, "enum": ["admin", "officer", "agent", "task_force", "web_admin"]}
+          },
+          "request_example": {
+            "role": "officer"
+          },
+          "response_example": {
+            "success": true,
+            "message": "User role updated successfully",
+            "data": {
+              "user": {
+                "id": 46,
+                "role": "officer",
+                "updated_at": "2026-01-05T11:30:00Z"
+              }
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/admin/users/:id/status",
+          "description": "Update user status (activate/deactivate/suspend)",
+          "auth_required": true,
+          "roles": ["admin", "web_admin"],
+          "path_parameters": {
+            "id": {"type": "number", "required": true}
+          },
+          "request_body": {
+            "status": {"type": "string", "required": true, "enum": ["active", "inactive", "suspended"]},
+            "reason": {"type": "string", "required": false}
+          },
+          "request_example": {
+            "status": "inactive",
+            "reason": "Temporarily unavailable"
+          },
+          "response_example": {
+            "success": true,
+            "message": "User status updated successfully",
+            "data": {
+              "user": {
+                "id": 46,
+                "status": "inactive",
+                "updated_at": "2026-01-05T12:00:00Z"
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/admin/users/stats",
+          "description": "Get user statistics by role",
+          "auth_required": true,
+          "roles": ["admin", "web_admin"],
+          "response_example": {
+            "success": true,
+            "message": "User statistics retrieved successfully",
+            "data": {
+              "total_users": 45,
+              "active_users": 38,
+              "inactive_users": 5,
+              "suspended_users": 2,
+              "by_role": {
+                "admin": 3,
+                "officer": 8,
+                "agent": 25,
+                "task_force": 6,
+                "web_admin": 3
+              },
+              "recent_registrations": 5,
+              "last_30_days_logins": 42
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Dashboard Statistics API",
+      "priority": "CRITICAL",
+      "description": "Dedicated endpoints for dashboard metrics across all user roles",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/admin/dashboard/stats",
+          "description": "Get admin dashboard statistics",
+          "auth_required": true,
+          "roles": ["admin", "web_admin"],
+          "response_example": {
+            "success": true,
+            "message": "Dashboard statistics retrieved",
+            "data": {
+              "overview": {
+                "total_issues": 450,
+                "active_users": 42,
+                "total_projects": 45,
+                "total_budget": 5000000
+              },
+              "users_by_role": {
+                "admin": 3,
+                "officer": 8,
+                "agent": 25,
+                "task_force": 6
+              },
+              "issues": {
+                "pending_review": 12,
+                "assigned": 35,
+                "in_progress": 85,
+                "resolved": 305,
+                "closed": 13
+              },
+              "projects": {
+                "planning": 8,
+                "ongoing": 15,
+                "completed": 18,
+                "on_hold": 4
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/officer/dashboard/stats",
+          "description": "Get officer dashboard statistics",
+          "auth_required": true,
+          "roles": ["officer"],
+          "response_example": {
+            "success": true,
+            "message": "Officer dashboard statistics",
+            "data": {
+              "my_issues": {
+                "total": 25,
+                "pending_review": 5,
+                "in_progress": 12,
+                "resolved": 8
+              },
+              "performance": {
+                "average_review_time_hours": 6.5,
+                "issues_reviewed_this_month": 18
+              },
+              "team": {
+                "total_agents": 8,
+                "active_agents": 7
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/agent/dashboard/stats",
+          "description": "Get agent dashboard statistics",
+          "auth_required": true,
+          "roles": ["agent"],
+          "response_example": {
+            "success": true,
+            "message": "Agent dashboard statistics",
+            "data": {
+              "my_issues": {
+                "total": 12,
+                "pending": 3,
+                "in_progress": 5,
+                "resolved": 4
+              },
+              "performance": {
+                "average_response_time_hours": 2.5,
+                "issues_handled_this_month": 8,
+                "satisfaction_rating": 4.7
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/task-force/dashboard/stats",
+          "description": "Get task force dashboard statistics",
+          "auth_required": true,
+          "roles": ["task_force"],
+          "response_example": {
+            "success": true,
+            "message": "Task force dashboard statistics",
+            "data": {
+              "my_task_force": {
+                "name": "Infrastructure Task Force",
+                "total_members": 5,
+                "active_assignments": 12
+              },
+              "my_assignments": {
+                "total": 5,
+                "pending_assessment": 2,
+                "in_progress": 2,
+                "completed": 1
+              },
+              "team_performance": {
+                "average_completion_days": 8.5,
+                "assignments_completed_this_month": 6
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Profile/Account API",
+      "priority": "HIGH",
+      "description": "User profile management and account settings",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/profile",
+          "description": "Get current user profile",
+          "auth_required": true,
+          "roles": ["all"],
+          "response_example": {
+            "success": true,
+            "message": "Profile retrieved successfully",
+            "data": {
+              "user": {
+                "id": 1,
+                "name": "John Doe",
+                "email": "john@example.com",
+                "phone": "+233242560140",
+                "avatar": "https://example.com/avatars/john.jpg",
+                "role": "officer",
+                "status": "active",
+                "location": "Sefwi Wiawso",
+                "bio": "Experienced community development officer",
+                "created_at": "2025-01-01T10:00:00Z",
+                "last_login": "2026-01-05T09:00:00Z",
+                "preferences": {
+                  "email_notifications": true,
+                  "sms_notifications": false,
+                  "language": "en",
+                  "timezone": "Africa/Accra"
+                }
+              }
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/profile",
+          "description": "Update profile",
+          "auth_required": true,
+          "roles": ["all"],
+          "request_body": {
+            "name": {"type": "string", "required": false},
+            "phone": {"type": "string", "required": false},
+            "bio": {"type": "string", "required": false},
+            "preferences": {"type": "object", "required": false}
+          },
+          "request_example": {
+            "name": "John Doe Jr.",
+            "phone": "+233242560999",
+            "bio": "Updated bio",
+            "preferences": {
+              "email_notifications": false,
+              "sms_notifications": true
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/profile/avatar",
+          "description": "Upload avatar image",
+          "auth_required": true,
+          "roles": ["all"],
+          "content_type": "multipart/form-data",
+          "request_body": {
+            "avatar": {"type": "file", "required": true, "accept": ["image/jpeg", "image/png", "image/webp"], "max_size_mb": 5}
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/profile/password",
+          "description": "Change password",
+          "auth_required": true,
+          "roles": ["all"],
+          "request_body": {
+            "current_password": {"type": "string", "required": true},
+            "new_password": {"type": "string", "required": true, "min_length": 8},
+            "new_password_confirmation": {"type": "string", "required": true}
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/profile/activity",
+          "description": "Get activity history",
+          "auth_required": true,
+          "roles": ["all"],
+          "query_parameters": {
+            "page": {"type": "number", "required": false, "default": 1},
+            "limit": {"type": "number", "required": false, "default": 20}
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Agents Management API",
+      "priority": "HIGH",
+      "description": "Field agent management and performance tracking",
+      "endpoint_count": 6,
+      "base_paths": [
+        "GET /admin/agents",
+        "GET /admin/agents/:id",
+        "POST /admin/agents",
+        "PUT /admin/agents/:id",
+        "DELETE /admin/agents/:id",
+        "PUT /admin/agents/:id/assign-area",
+        "GET /admin/agents/:id/issues",
+        "GET /admin/agents/:id/performance"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Officers Management API",
+      "priority": "HIGH",
+      "description": "Officer management and issue review tracking",
+      "endpoint_count": 5,
+      "base_paths": [
+        "GET /admin/officers",
+        "GET /admin/officers/:id",
+        "POST /admin/officers",
+        "PUT /admin/officers/:id",
+        "DELETE /admin/officers/:id",
+        "GET /admin/officers/:id/issues",
+        "GET /admin/officers/stats"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Task Force Management API",
+      "priority": "HIGH",
+      "description": "Task force team and assignment management",
+      "endpoint_count": 8,
+      "base_paths": [
+        "GET /admin/task-forces",
+        "GET /admin/task-forces/:id",
+        "POST /admin/task-forces",
+        "PUT /admin/task-forces/:id",
+        "DELETE /admin/task-forces/:id",
+        "GET /admin/task-forces/:id/members",
+        "POST /admin/task-forces/:id/members",
+        "DELETE /admin/task-forces/:id/members/:userId",
+        "GET /admin/task-forces/:id/assignments"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Locations Management API",
+      "priority": "MEDIUM",
+      "description": "Constituency areas and zones management",
+      "endpoint_count": 5,
+      "base_paths": [
+        "GET /admin/locations",
+        "GET /admin/locations/:id",
+        "POST /admin/locations",
+        "PUT /admin/locations/:id",
+        "DELETE /admin/locations/:id",
+        "GET /admin/locations/:id/stats"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Youth Programs API",
+      "priority": "MEDIUM",
+      "description": "Youth program management and participant enrollment",
+      "endpoint_count": 6,
+      "base_paths": [
+        "GET /youth-programs (public)",
+        "GET /youth-programs/:slug (public)",
+        "GET /admin/youth-programs",
+        "GET /admin/youth-programs/:id",
+        "POST /admin/youth-programs",
+        "PUT /admin/youth-programs/:id",
+        "DELETE /admin/youth-programs/:id",
+        "GET /admin/youth-programs/:id/participants",
+        "POST /admin/youth-programs/:id/enroll"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "System Settings API",
+      "priority": "MEDIUM",
+      "description": "Application configuration and settings management",
+      "endpoint_count": 6,
+      "base_paths": [
+        "GET /admin/settings",
+        "GET /admin/settings/:key",
+        "PUT /admin/settings/:key",
+        "GET /admin/settings/email",
+        "PUT /admin/settings/email",
+        "GET /admin/settings/sms",
+        "PUT /admin/settings/sms"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Notifications API",
+      "priority": "MEDIUM",
+      "description": "User notifications and alerts system",
+      "endpoint_count": 5,
+      "base_paths": [
+        "GET /notifications",
+        "PUT /notifications/:id/read",
+        "PUT /notifications/read-all",
+        "DELETE /notifications/:id",
+        "GET /notifications/unread-count"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Analytics & Reports API",
+      "priority": "LOW",
+      "description": "Advanced analytics and custom report generation",
+      "endpoint_count": 6,
+      "base_paths": [
+        "GET /admin/analytics/overview",
+        "GET /admin/analytics/issues",
+        "GET /admin/analytics/projects",
+        "GET /admin/analytics/users",
+        "POST /admin/reports/generate",
+        "GET /admin/reports/:id/download"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Audit Logs API",
+      "priority": "LOW",
+      "description": "System audit trail and activity logging",
+      "endpoint_count": 3,
+      "base_paths": [
+        "GET /admin/audit-logs",
+        "GET /admin/audit-logs/:id",
+        "POST /admin/audit-logs"
+      ]
+    }
+  ],
+  "implementation_phases": [
+    {
+      "phase": 1,
+      "name": "Critical Foundation",
+      "duration_weeks": "1-2",
+      "categories": ["User Management API", "Dashboard Statistics API", "Profile/Account API"],
+      "endpoint_count": 17,
+      "impact": "Enables basic admin functions and accurate dashboard displays"
+    },
+    {
+      "phase": 2,
+      "name": "Operational Features",
+      "duration_weeks": "3-4",
+      "categories": ["Agents Management API", "Officers Management API", "Task Force Management API"],
+      "endpoint_count": 19,
+      "impact": "Enables full workflow management and team coordination"
+    },
+    {
+      "phase": 3,
+      "name": "Enhanced Features",
+      "duration_weeks": "5-6",
+      "categories": ["Locations Management API", "Youth Programs API", "System Settings API", "Notifications API"],
+      "endpoint_count": 22,
+      "impact": "Completes administrative features and user experience"
+    },
+    {
+      "phase": 4,
+      "name": "Analytics & Audit",
+      "duration_weeks": "7-8",
+      "categories": ["Analytics & Reports API", "Audit Logs API"],
+      "endpoint_count": 9,
+      "impact": "Enables reporting, insights, and compliance tracking"
+    }
+  ],
+  "standard_response_format": {
+    "success_response": {
+      "success": true,
+      "message": "Operation completed successfully",
+      "data": {}
+    },
+    "error_response": {
+      "success": false,
+      "message": "Error description",
+      "errors": {
+        "field_name": ["Validation error message"]
+      }
+    },
+    "paginated_response": {
+      "success": true,
+      "message": "Data retrieved successfully",
+      "data": {
+        "items": [],
+        "pagination": {
+          "page": 1,
+          "limit": 20,
+          "total": 150,
+          "total_pages": 8
+        }
+      }
+    }
+  },
+  "http_status_codes": {
+    "200": "Success",
+    "201": "Created",
+    "400": "Bad Request (validation errors)",
+    "401": "Unauthorized",
+    "403": "Forbidden (insufficient permissions)",
+    "404": "Not Found",
+    "422": "Unprocessable Entity (validation failed)",
+    "500": "Internal Server Error"
+  },
+  "authentication": {
+    "type": "JWT Bearer Token",
+    "header": "Authorization: Bearer <token>",
+    "token_expiry": "24 hours",
+    "refresh_token": "Required for token renewal"
+  },
+  "notes": [
+    "All authenticated endpoints require JWT token in Authorization header",
+    "Implement robust input validation on all endpoints",
+    "Default pagination: 20 items per page, max 100",
+    "Implement rate limiting to prevent abuse",
+    "Log all administrative actions for audit trail",
+    "Use database transactions for critical operations"
+  ]
+}

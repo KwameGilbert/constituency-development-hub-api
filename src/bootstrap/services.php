@@ -16,6 +16,8 @@ use App\Services\UploadService;
 use App\Controllers\AuthController;
 use App\Controllers\UserController;
 use App\Controllers\PasswordResetController;
+use App\Controllers\ProfileController;
+use App\Controllers\DashboardController;
 
 use App\Controllers\BlogPostController;
 use App\Controllers\ConstituencyEventController;
@@ -92,8 +94,16 @@ return function ($container) {
         return new AuthController($container->get(AuthService::class));
     });
     
-    $container->set(UserController::class, function () {
-        return new UserController();
+    $container->set(UserController::class, function ($container) {
+        return new UserController($container->get(AuthService::class));
+    });
+
+    $container->set(ProfileController::class, function ($container) {
+        return new ProfileController($container->get(UploadService::class));
+    });
+
+    $container->set(DashboardController::class, function () {
+        return new DashboardController();
     });
     
     $container->set(PasswordResetController::class, function ($container) {
