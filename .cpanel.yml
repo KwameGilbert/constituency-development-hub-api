@@ -1,0 +1,60 @@
+---
+# =============================================================================
+# cPanel Git Deployment Configuration
+# Constituency Development Hub API
+#
+# This file configures automatic deployment when pushing to the Git repository
+# connected to Namecheap cPanel's Git Version Control.
+# =============================================================================
+
+deployment:
+  tasks:
+    # ---------------------------------------------------------------------
+    # Step 1: Navigate to the deployment directory
+    # Your deployment path on Namecheap cPanel
+    # ---------------------------------------------------------------------
+    - export DEPLOYPATH=/home/kofiwgmr/api.kofibenteh.com
+
+    # ---------------------------------------------------------------------
+    # Step 2: Copy all repository files to deployment directory
+    # Using rsync for efficient file transfer with exclusions
+    # ---------------------------------------------------------------------
+    - /bin/cp -R .htaccess $DEPLOYPATH/
+    - /bin/cp -R composer.json $DEPLOYPATH/
+    - /bin/cp -R composer.lock $DEPLOYPATH/
+    - /bin/cp -R phinx.php $DEPLOYPATH/
+    - /bin/cp -R ca.pem $DEPLOYPATH/
+    - /bin/cp -R public $DEPLOYPATH/
+    - /bin/cp -R src $DEPLOYPATH/
+    - /bin/cp -R database $DEPLOYPATH/
+    - /bin/cp -R templates $DEPLOYPATH/
+    - /bin/cp -R docs $DEPLOYPATH/
+
+    # ---------------------------------------------------------------------
+    # Step 3: Install/Update Composer Dependencies
+    # Using --no-dev for production (excludes dev dependencies)
+    # Using --optimize-autoloader for better performance
+    # ---------------------------------------------------------------------
+    - cd $DEPLOYPATH && /usr/local/bin/php /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader --no-interaction
+
+    # ---------------------------------------------------------------------
+    # Step 4: Set proper file permissions
+    # ---------------------------------------------------------------------
+    - find $DEPLOYPATH -type f -exec chmod 644 {} \;
+    - find $DEPLOYPATH -type d -exec chmod 755 {} \;
+
+    # ---------------------------------------------------------------------
+    # Step 5: Ensure uploads directory is writable
+    # ---------------------------------------------------------------------
+    - chmod -R 755 $DEPLOYPATH/public/uploads 2>/dev/null || true
+
+    # ---------------------------------------------------------------------
+    # Step 6: Run database migrations (optional - uncomment if needed)
+    # Make sure your .env is configured on the server first
+    # ---------------------------------------------------------------------
+    # - cd $DEPLOYPATH && /usr/local/bin/php vendor/bin/phinx migrate -e production
+
+    # ---------------------------------------------------------------------
+    # Step 7: Clear any cached files (if applicable)
+    # ---------------------------------------------------------------------
+    - rm -rf $DEPLOYPATH/src/logs/*.log 2>/dev/null || true
