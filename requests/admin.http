@@ -1,11 +1,11 @@
 ### ============================================================
 ### ADMIN API REQUESTS
-### Base URL: http://localhost:8000/v1/admin
+### Base URL: 
 ### All routes require admin authentication
 ### ============================================================
 
 ### Variables
-@baseUrl = http://localhost:8000/v1
+@baseUrl = 
 @adminToken = YOUR_ADMIN_JWT_TOKEN_HERE
 
 ### ============================================================
