@@ -1,11 +1,21 @@
 {
   "project": "Constituency Development Hub",
-  "version": "1.0",
-  "date": "2026-01-05",
+  "version": "1.1",
+  "date": "2026-01-06",
   "summary": {
-    "total_missing_endpoints": 67,
+    "total_missing_endpoints": 52,
     "categories": 12,
-    "existing_services": 11,
+    "existing_services": 14,
+    "newly_implemented": {
+      "date": "2026-01-06",
+      "endpoints": 35,
+      "features": [
+        "Admin Dashboard Data API",
+        "Announcements CRUD",
+        "Employment Jobs CRUD",
+        "Community Ideas with Voting"
+      ]
+    },
     "priority_levels": {
       "critical": 3,
       "high": 3,
@@ -24,8 +34,73 @@
     "ideas-service",
     "issues-service",
     "projects-service",
-    "upload-service"
+    "upload-service",
+    "admin-data-service",
+    "announcements-crud-service",
+    "employment-jobs-crud-service",
+    "community-ideas-service"
   ],
+  "implemented_api_endpoints": {
+    "admin_data": {
+      "base_path": "/v1/admin/data",
+      "auth_required": true,
+      "roles": ["admin", "web_admin"],
+      "endpoints": [
+        "GET /agents - Get field agents with performance data",
+        "GET /analytics/charts - Get chart data for analytics",
+        "GET /analytics/insights - Get performance insights",
+        "GET /analytics/metrics - Get overview metrics",
+        "GET /announcements - Get announcements from database",
+        "GET /audit-logs - Get system audit logs",
+        "GET /employment-jobs - Get job listings",
+        "GET /ideas - Get community ideas",
+        "GET /metrics - Get summary and entity metrics",
+        "GET /recent-issues - Get recent issues",
+        "GET /all - Get all dashboard data combined"
+      ]
+    },
+    "announcements": {
+      "base_path": "/v1/announcements",
+      "endpoints": [
+        "GET /public - List active announcements (public)",
+        "GET /{id} - Get single announcement (public)",
+        "GET / - List all announcements (admin)",
+        "POST / - Create announcement (admin)",
+        "PUT /{id} - Update announcement (admin)",
+        "DELETE /{id} - Delete announcement (admin)",
+        "POST /{id}/publish - Publish announcement (admin)",
+        "POST /{id}/archive - Archive announcement (admin)"
+      ]
+    },
+    "employment_jobs": {
+      "base_path": "/v1/jobs",
+      "endpoints": [
+        "GET /public - List open jobs (public)",
+        "GET /{id} - Get single job (public)",
+        "GET / - List all jobs (admin)",
+        "POST / - Create job (admin)",
+        "PUT /{id} - Update job (admin)",
+        "DELETE /{id} - Delete job (admin)",
+        "POST /{id}/publish - Publish job (admin)",
+        "POST /{id}/close - Close job (admin)"
+      ]
+    },
+    "community_ideas": {
+      "base_path": "/v1/ideas",
+      "endpoints": [
+        "GET /public - List approved ideas (public)",
+        "GET /top - Get top voted ideas (public)",
+        "GET /{id} - Get single idea (public)",
+        "POST / - Submit new idea (public/authenticated)",
+        "POST /{id}/vote - Vote for idea (public/authenticated)",
+        "DELETE /{id}/vote - Remove vote (authenticated)",
+        "GET / - List all ideas (admin)",
+        "PUT /{id} - Update idea (admin)",
+        "DELETE /{id} - Delete idea (admin)",
+        "POST /{id}/status - Change idea status (admin)"
+      ]
+    }
+  },
   "missing_api_categories": [
     {
       "id": 1,
@@ -40,11 +115,19 @@
           "auth_required": true,
           "roles": ["admin", "web_admin"],
           "query_parameters": {
-            "page": {"type": "number", "required": false, "default": 1},
-            "limit": {"type": "number", "required": false, "default": 20},
-            "role": {"type": "string", "required": false, "enum": ["admin", "officer", "agent", "task_force", "web_admin"]},
-            "status": {"type": "string", "required": false, "enum": ["active", "inactive", "suspended"]},
-            "search": {"type": "string", "required": false}
+            "page": { "type": "number", "required": false, "default": 1 },
+            "limit": { "type": "number", "required": false, "default": 20 },
+            "role": {
+              "type": "string",
+              "required": false,
+              "enum": ["admin", "officer", "agent", "task_force", "web_admin"]
+            },
+            "status": {
+              "type": "string",
+              "required": false,
+              "enum": ["active", "inactive", "suspended"]
+            },
+            "search": { "type": "string", "required": false }
           },
           "response_example": {
             "success": true,
@@ -82,7 +165,7 @@
           "auth_required": true,
           "roles": ["admin", "web_admin"],
           "path_parameters": {
-            "id": {"type": "number", "required": true}
+            "id": { "type": "number", "required": true }
           },
           "response_example": {
             "success": true,
@@ -101,7 +184,11 @@
                 "created_at": "2025-01-01T10:00:00Z",
                 "updated_at": "2026-01-03T12:00:00Z",
                 "last_login": "2026-01-04T15:30:00Z",
-                "permissions": ["view_issues", "update_issues", "create_reports"],
+                "permissions": [
+                  "view_issues",
+                  "update_issues",
+                  "create_reports"
+                ],
                 "statistics": {
                   "total_issues": 15,
                   "resolved_issues": 10,
@@ -119,13 +206,37 @@
           "auth_required": true,
           "roles": ["admin", "web_admin"],
           "request_body": {
-            "name": {"type": "string", "required": true, "min_length": 3, "max_length": 100},
-            "email": {"type": "string", "required": true, "format": "email", "unique": true},
-            "phone": {"type": "string", "required": true, "format": "phone"},
-            "password": {"type": "string", "required": true, "min_length": 8, "pattern": "Must include uppercase, lowercase, and number"},
-            "role": {"type": "string", "required": true, "enum": ["admin", "officer", "agent", "task_force", "web_admin"]},
-            "location": {"type": "string", "required": false},
-            "status": {"type": "string", "required": false, "default": "active", "enum": ["active", "inactive"]}
+            "name": {
+              "type": "string",
+              "required": true,
+              "min_length": 3,
+              "max_length": 100
+            },
+            "email": {
+              "type": "string",
+              "required": true,
+              "format": "email",
+              "unique": true
+            },
+            "phone": { "type": "string", "required": true, "format": "phone" },
+            "password": {
+              "type": "string",
+              "required": true,
+              "min_length": 8,
+              "pattern": "Must include uppercase, lowercase, and number"
+            },
+            "role": {
+              "type": "string",
+              "required": true,
+              "enum": ["admin", "officer", "agent", "task_force", "web_admin"]
+            },
+            "location": { "type": "string", "required": false },
+            "status": {
+              "type": "string",
+              "required": false,
+              "default": "active",
+              "enum": ["active", "inactive"]
+            }
           },
           "request_example": {
             "name": "Jane Smith",
@@ -160,13 +271,13 @@
           "auth_required": true,
           "roles": ["admin", "web_admin"],
           "path_parameters": {
-            "id": {"type": "number", "required": true}
+            "id": { "type": "number", "required": true }
           },
           "request_body": {
-            "name": {"type": "string", "required": false},
-            "phone": {"type": "string", "required": false},
-            "location": {"type": "string", "required": false},
-            "bio": {"type": "string", "required": false}
+            "name": { "type": "string", "required": false },
+            "phone": { "type": "string", "required": false },
+            "location": { "type": "string", "required": false },
+            "bio": { "type": "string", "required": false }
           },
           "request_example": {
             "name": "Jane Smith Updated",
@@ -193,7 +304,7 @@
           "auth_required": true,
           "roles": ["admin", "web_admin"],
           "path_parameters": {
-            "id": {"type": "number", "required": true}
+            "id": { "type": "number", "required": true }
           },
           "response_example": {
             "success": true,
@@ -207,10 +318,14 @@
           "auth_required": true,
           "roles": ["admin", "web_admin"],
           "path_parameters": {
-            "id": {"type": "number", "required": true}
+            "id": { "type": "number", "required": true }
           },
           "request_body": {
-            "role": {"type": "string", "required": true, "enum": ["admin", "officer", "agent", "task_force", "web_admin"]}
+            "role": {
+              "type": "string",
+              "required": true,
+              "enum": ["admin", "officer", "agent", "task_force", "web_admin"]
+            }
           },
           "request_example": {
             "role": "officer"
@@ -234,11 +349,15 @@
           "auth_required": true,
           "roles": ["admin", "web_admin"],
           "path_parameters": {
-            "id": {"type": "number", "required": true}
+            "id": { "type": "number", "required": true }
           },
           "request_body": {
-            "status": {"type": "string", "required": true, "enum": ["active", "inactive", "suspended"]},
-            "reason": {"type": "string", "required": false}
+            "status": {
+              "type": "string",
+              "required": true,
+              "enum": ["active", "inactive", "suspended"]
+            },
+            "reason": { "type": "string", "required": false }
           },
           "request_example": {
             "status": "inactive",
@@ -454,10 +573,10 @@
           "auth_required": true,
           "roles": ["all"],
           "request_body": {
-            "name": {"type": "string", "required": false},
-            "phone": {"type": "string", "required": false},
-            "bio": {"type": "string", "required": false},
-            "preferences": {"type": "object", "required": false}
+            "name": { "type": "string", "required": false },
+            "phone": { "type": "string", "required": false },
+            "bio": { "type": "string", "required": false },
+            "preferences": { "type": "object", "required": false }
           },
           "request_example": {
             "name": "John Doe Jr.",
@@ -477,7 +596,12 @@
           "roles": ["all"],
           "content_type": "multipart/form-data",
           "request_body": {
-            "avatar": {"type": "file", "required": true, "accept": ["image/jpeg", "image/png", "image/webp"], "max_size_mb": 5}
+            "avatar": {
+              "type": "file",
+              "required": true,
+              "accept": ["image/jpeg", "image/png", "image/webp"],
+              "max_size_mb": 5
+            }
           }
         },
         {
@@ -487,9 +611,13 @@
           "auth_required": true,
           "roles": ["all"],
           "request_body": {
-            "current_password": {"type": "string", "required": true},
-            "new_password": {"type": "string", "required": true, "min_length": 8},
-            "new_password_confirmation": {"type": "string", "required": true}
+            "current_password": { "type": "string", "required": true },
+            "new_password": {
+              "type": "string",
+              "required": true,
+              "min_length": 8
+            },
+            "new_password_confirmation": { "type": "string", "required": true }
           }
         },
         {
@@ -499,8 +627,8 @@
           "auth_required": true,
           "roles": ["all"],
           "query_parameters": {
-            "page": {"type": "number", "required": false, "default": 1},
-            "limit": {"type": "number", "required": false, "default": 20}
+            "page": { "type": "number", "required": false, "default": 1 },
+            "limit": { "type": "number", "required": false, "default": 20 }
           }
         }
       ]
@@ -652,7 +780,11 @@
       "phase": 1,
       "name": "Critical Foundation",
       "duration_weeks": "1-2",
-      "categories": ["User Management API", "Dashboard Statistics API", "Profile/Account API"],
+      "categories": [
+        "User Management API",
+        "Dashboard Statistics API",
+        "Profile/Account API"
+      ],
       "endpoint_count": 17,
       "impact": "Enables basic admin functions and accurate dashboard displays"
     },
@@ -660,7 +792,11 @@
       "phase": 2,
       "name": "Operational Features",
       "duration_weeks": "3-4",
-      "categories": ["Agents Management API", "Officers Management API", "Task Force Management API"],
+      "categories": [
+        "Agents Management API",
+        "Officers Management API",
+        "Task Force Management API"
+      ],
       "endpoint_count": 19,
       "impact": "Enables full workflow management and team coordination"
     },
@@ -668,7 +804,12 @@
       "phase": 3,
       "name": "Enhanced Features",
       "duration_weeks": "5-6",
-      "categories": ["Locations Management API", "Youth Programs API", "System Settings API", "Notifications API"],
+      "categories": [
+        "Locations Management API",
+        "Youth Programs API",
+        "System Settings API",
+        "Notifications API"
+      ],
       "endpoint_count": 22,
       "impact": "Completes administrative features and user experience"
     },
