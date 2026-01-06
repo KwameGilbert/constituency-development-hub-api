@@ -1,0 +1,54 @@
+{
+  "recentIssues": [
+    {
+      "id": "ISS-2025-001",
+      "title": "Road Maintenance - Pokuase Junction",
+      "description": "Potholes and drainage issues causing traffic congestion",
+      "agent": "John Mensah",
+      "status": "In Progress",
+      "severity": "High",
+      "date": "2025-01-15",
+      "category": "Infrastructure"
+    },
+    {
+      "id": "ISS-2025-002",
+      "title": "Street Light Outage - Asonomaso",
+      "description": "Multiple street lights not functioning in residential area",
+      "agent": "Sarah Kofi",
+      "status": "Resolved",
+      "severity": "Medium",
+      "date": "2025-01-14",
+      "category": "Utilities"
+    },
+    {
+      "id": "ISS-2025-003",
+      "title": "Water Supply Interruption",
+      "description": "No water supply in Ofankor community for 48 hours",
+      "agent": "Michael Osei",
+      "status": "Pending Review",
+      "severity": "Critical",
+      "date": "2025-01-13",
+      "category": "Water"
+    },
+    {
+      "id": "ISS-2025-004",
+      "title": "School Facility Repair",
+      "description": "Broken windows and leaking roof at Primary School",
+      "agent": "Grace Addo",
+      "status": "Approved",
+      "severity": "Medium",
+      "date": "2025-01-12",
+      "category": "Education"
+    },
+    {
+      "id": "ISS-2025-005",
+      "title": "Health Center Equipment",
+      "description": "Medical equipment malfunction at local clinic",
+      "agent": "David Boateng",
+      "status": "In Progress",
+      "severity": "High",
+      "date": "2025-01-11",
+      "category": "Healthcare"
+    }
+  ]
+}

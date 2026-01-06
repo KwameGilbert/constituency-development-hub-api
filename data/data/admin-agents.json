@@ -1,0 +1,79 @@
+{
+  "agents": [
+    {
+      "id": 1,
+      "name": "Agent.Rock",
+      "email": "agent.rock@kofibenteh.com",
+      "phone": "+233 24 123 4567",
+      "location": "Sefwi Wiawso Central",
+      "status": "active",
+      "role": "Field Agent",
+      "lastLogin": "2025-12-08T10:30:00Z",
+      "dateAdded": "2025-09-28T09:00:00Z",
+      "issuesHandled": 45,
+      "activeIssues": 3,
+      "performance": "Excellent"
+    },
+    {
+      "id": 2,
+      "name": "Sarah Kofi",
+      "email": "sarah.kofi@kofibenteh.com",
+      "phone": "+233 20 987 6543",
+      "location": "Sefwi Wiawso North",
+      "status": "active",
+      "role": "Community Liaison",
+      "lastLogin": "2025-12-07T14:20:00Z",
+      "dateAdded": "2025-10-15T11:30:00Z",
+      "issuesHandled": 32,
+      "activeIssues": 1,
+      "performance": "Good"
+    },
+    {
+      "id": 3,
+      "name": "Michael Osei",
+      "email": "michael.osei@kofibenteh.com",
+      "phone": "+233 27 555 7890",
+      "location": "Sefwi Wiawso South",
+      "status": "inactive",
+      "role": "Field Agent",
+      "lastLogin": "2025-11-25T16:45:00Z",
+      "dateAdded": "2025-08-20T08:15:00Z",
+      "issuesHandled": 28,
+      "activeIssues": 0,
+      "performance": "Average"
+    },
+    {
+      "id": 4,
+      "name": "Grace Addo",
+      "email": "grace.addo@kofibenteh.com",
+      "phone": "+233 26 444 1122",
+      "location": "Sefwi Wiawso East",
+      "status": "active",
+      "role": "Project Coordinator",
+      "lastLogin": "2025-12-06T09:10:00Z",
+      "dateAdded": "2025-11-01T13:45:00Z",
+      "issuesHandled": 19,
+      "activeIssues": 2,
+      "performance": "Excellent"
+    },
+    {
+      "id": 5,
+      "name": "David Boateng",
+      "email": "david.boateng@kofibenteh.com",
+      "phone": "+233 23 777 3344",
+      "location": "Sefwi Wiawso West",
+      "status": "active",
+      "role": "Field Agent",
+      "lastLogin": "2025-12-05T11:25:00Z",
+      "dateAdded": "2025-09-10T10:20:00Z",
+      "issuesHandled": 51,
+      "activeIssues": 4,
+      "performance": "Excellent"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "active": 4,
+    "inactive": 1
+  }
+}

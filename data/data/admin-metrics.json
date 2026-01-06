@@ -1,0 +1,66 @@
+{
+  "summaryMetrics": [
+    {
+      "id": "totalIssues",
+      "label": "Total Issues",
+      "value": 2,
+      "subtitle": "0 pending review",
+      "icon": "ClipboardList",
+      "color": "blue"
+    },
+    {
+      "id": "activeUsers",
+      "label": "Active Users",
+      "value": 3,
+      "subtitle": "3 total registered",
+      "icon": "Users",
+      "color": "emerald"
+    },
+    {
+      "id": "projects",
+      "label": "Projects",
+      "value": 0,
+      "subtitle": "0 ongoing",
+      "icon": "FolderKanban",
+      "color": "purple"
+    },
+    {
+      "id": "totalBudget",
+      "label": "Total Budget",
+      "value": "₵0",
+      "subtitle": "Project allocations",
+      "icon": "Wallet",
+      "color": "amber"
+    }
+  ],
+  "entityMetrics": [
+    {
+      "id": "fieldAgents",
+      "label": "Field Agents",
+      "value": 1,
+      "icon": "Users",
+      "color": "blue"
+    },
+    {
+      "id": "officers",
+      "label": "Officers",
+      "value": 1,
+      "icon": "ShieldCheck",
+      "color": "indigo"
+    },
+    {
+      "id": "administrators",
+      "label": "Administrators",
+      "value": 1,
+      "icon": "UserCog",
+      "color": "red"
+    },
+    {
+      "id": "jobOpportunities",
+      "label": "Job Opportunities",
+      "value": 0,
+      "icon": "Briefcase",
+      "color": "green"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "metrics": {
+    "totalIssues": 47,
+    "activeStaff": 5,
+    "totalProjects": 12,
+    "activeBudget": 2500000.00,
+    "newIssuesThisWeek": 8,
+    "resolvedThisWeek": 6,
+    "activeUsers7Days": 23,
+    "ongoingProjects": 7
+  },
+  "trends": {
+    "issuesChange": 15.2,
+    "staffChange": 25.0,
+    "projectsChange": -5.3,
+    "budgetChange": 12.8,
+    "newIssuesChange": 22.5,
+    "resolvedChange": 18.7,
+    "activeUsersChange": 8.3,
+    "ongoingProjectsChange": 16.7
+  }
+}

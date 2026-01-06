@@ -1,0 +1,26 @@
+{
+  "charts": {
+    "issueStatusDistribution": [
+      { "name": "Resolved", "value": 18, "color": "#10b981" },
+      { "name": "In Progress", "value": 12, "color": "#f59e0b" },
+      { "name": "Pending", "value": 10, "color": "#3b82f6" },
+      { "name": "New", "value": 7, "color": "#ef4444" }
+    ],
+    "monthlyTrends": [
+      { "name": "2024-08", "issues": 8, "resolved": 6 },
+      { "name": "2024-09", "issues": 12, "resolved": 9 },
+      { "name": "2024-10", "issues": 15, "resolved": 11 },
+      { "name": "2024-11", "issues": 10, "resolved": 8 },
+      { "name": "2024-12", "issues": 14, "resolved": 10 },
+      { "name": "2025-01", "issues": 9, "resolved": 7 }
+    ],
+    "categoryDistribution": [
+      { "name": "Infrastructure", "value": 15, "color": "#3b82f6" },
+      { "name": "Utilities", "value": 12, "color": "#10b981" },
+      { "name": "Healthcare", "value": 8, "color": "#f59e0b" },
+      { "name": "Education", "value": 6, "color": "#ef4444" },
+      { "name": "Environment", "value": 4, "color": "#8b5cf6" },
+      { "name": "Other", "value": 2, "color": "#6b7280" }
+    ]
+  }
+}
