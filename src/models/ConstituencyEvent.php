@@ -10,15 +10,13 @@ use Carbon\Carbon;
 /**
  * ConstituencyEvent Model
  * 
- * Represents a community event managed by web admins.
+ * Represents a community event.
  *
  * @property int $id
- * @property int|null $created_by
- * @property int|null $updated_by
  * @property string $name
  * @property string $slug
  * @property string|null $description
- * @property string $event_date
+ * @property \Illuminate\Support\Carbon $event_date
  * @property string|null $start_time
  * @property string|null $end_time
  * @property string $location
@@ -49,8 +47,6 @@ class ConstituencyEvent extends Model
     const STATUS_POSTPONED = 'postponed';
 
     protected $fillable = [
-        'created_by',
-        'updated_by',
         'name',
         'slug',
         'description',
@@ -71,8 +67,6 @@ class ConstituencyEvent extends Model
     ];
 
     protected $casts = [
-        'created_by' => 'integer',
-        'updated_by' => 'integer',
         'event_date' => 'date',
         'is_featured' => 'boolean',
         'max_attendees' => 'integer',
@@ -80,21 +74,6 @@ class ConstituencyEvent extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
-
-    /* -----------------------------------------------------------------
-     |  Relationships
-     | -----------------------------------------------------------------
-     */
-
-    public function createdBy()
-    {
-        return $this->belongsTo(WebAdmin::class, 'created_by');
-    }
-
-    public function updatedBy()
-    {
-        return $this->belongsTo(WebAdmin::class, 'updated_by');
-    }
 
     /* -----------------------------------------------------------------
      |  Query Scopes
@@ -132,6 +111,22 @@ class ConstituencyEvent extends Model
         return $this->status === self::STATUS_UPCOMING && $this->event_date >= date('Y-m-d');
     }
 
+    /**
+     * Format time for display (e.g., "09:00" -> "09:00 AM")
+     */
+    protected function formatTime(?string $time): ?string
+    {
+        if ($time === null) {
+            return null;
+        }
+        
+        try {
+            return Carbon::parse($time)->format('h:i A');
+        } catch (\Exception $e) {
+            return $time;
+        }
+    }
+
     public function toPublicArray(): array
     {
         return [
@@ -139,9 +134,9 @@ class ConstituencyEvent extends Model
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,
-            'event_date' => $this->event_date->format('Y-m-d'),
-            'start_time' => $this->start_time->format('H:i A'),
-            'end_time' => $this->end_time->format('H:i A'),
+            'event_date' => $this->event_date?->format('Y-m-d'),
+            'start_time' => $this->formatTime($this->start_time),
+            'end_time' => $this->formatTime($this->end_time),
             'location' => $this->location,
             'venue_address' => $this->venue_address,
             'map_url' => $this->map_url,
@@ -151,8 +146,10 @@ class ConstituencyEvent extends Model
             'contact_email' => $this->contact_email,
             'status' => $this->status,
             'is_featured' => $this->is_featured,
+            'max_attendees' => $this->max_attendees,
             'registration_required' => $this->registration_required,
             'created_at' => $this->created_at?->toDateTimeString(),
         ];
     }
 }
+

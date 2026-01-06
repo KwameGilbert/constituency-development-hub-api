@@ -1,0 +1,149 @@
+{
+  "auditLogs": [
+    {
+      "id": 1,
+      "user": "Admin.Rock",
+      "action": "Created User",
+      "resource": "User: john.doe",
+      "ip": "192.168.1.1",
+      "timestamp": "2025-01-15T10:30:00Z",
+      "status": "success",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "session_id": "sess_abc123"
+    },
+    {
+      "id": 2,
+      "user": "Admin.Rock",
+      "action": "Updated Settings",
+      "resource": "System Config",
+      "ip": "192.168.1.1",
+      "timestamp": "2025-01-15T11:15:00Z",
+      "status": "success",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "session_id": "sess_abc123"
+    },
+    {
+      "id": 3,
+      "user": "manager.kofi",
+      "action": "Login Failed",
+      "resource": "Auth Session",
+      "ip": "10.0.0.45",
+      "timestamp": "2025-01-15T09:12:00Z",
+      "status": "failed",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+      "session_id": "sess_def456"
+    },
+    {
+      "id": 4,
+      "user": "Admin.Rock",
+      "action": "Deleted Community",
+      "resource": "Community: Old Town",
+      "ip": "192.168.1.1",
+      "timestamp": "2025-01-14T16:45:00Z",
+      "status": "warning",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "session_id": "sess_abc123"
+    },
+    {
+      "id": 5,
+      "user": "system",
+      "action": "Backup Completed",
+      "resource": "Database",
+      "ip": "localhost",
+      "timestamp": "2025-01-14T02:00:00Z",
+      "status": "success",
+      "user_agent": "System Process",
+      "session_id": "system_backup"
+    },
+    {
+      "id": 6,
+      "user": "agent.mary",
+      "action": "Updated Issue Status",
+      "resource": "Issue: #1234",
+      "ip": "172.16.0.10",
+      "timestamp": "2025-01-15T14:22:00Z",
+      "status": "success",
+      "user_agent": "Mozilla/5.0 (Android 13; Mobile) AppleWebKit/537.36",
+      "session_id": "sess_ghi789"
+    },
+    {
+      "id": 7,
+      "user": "officer.paul",
+      "action": "Created Report",
+      "resource": "Monthly Report: January 2025",
+      "ip": "192.168.2.15",
+      "timestamp": "2025-01-15T13:45:00Z",
+      "status": "success",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      "session_id": "sess_jkl012"
+    },
+    {
+      "id": 8,
+      "user": "webadmin.sara",
+      "action": "Published Announcement",
+      "resource": "Announcement: Health Screening",
+      "ip": "10.0.1.25",
+      "timestamp": "2025-01-15T12:30:00Z",
+      "status": "success",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/605.1.15",
+      "session_id": "sess_mno345"
+    },
+    {
+      "id": 9,
+      "user": "unknown",
+      "action": "Unauthorized Access Attempt",
+      "resource": "Admin Dashboard",
+      "ip": "203.0.113.1",
+      "timestamp": "2025-01-15T08:15:00Z",
+      "status": "failed",
+      "user_agent": "Python/3.9 aiohttp/3.8.1",
+      "session_id": "unauthorized_attempt"
+    },
+    {
+      "id": 10,
+      "user": "Admin.Rock",
+      "action": "Exported Data",
+      "resource": "User Data CSV",
+      "ip": "192.168.1.1",
+      "timestamp": "2025-01-14T15:20:00Z",
+      "status": "success",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "session_id": "sess_abc123"
+    },
+    {
+      "id": 11,
+      "user": "system",
+      "action": "Scheduled Task Executed",
+      "resource": "Data Cleanup",
+      "ip": "localhost",
+      "timestamp": "2025-01-14T03:00:00Z",
+      "status": "success",
+      "user_agent": "System Process",
+      "session_id": "system_cleanup"
+    },
+    {
+      "id": 12,
+      "user": "manager.kofi",
+      "action": "Password Changed",
+      "resource": "User: manager.kofi",
+      "ip": "10.0.0.45",
+      "timestamp": "2025-01-13T16:55:00Z",
+      "status": "success",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+      "session_id": "sess_def456"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 12,
+    "total_pages": 1
+  },
+  "summary": {
+    "total_logs": 12,
+    "success_count": 9,
+    "failed_count": 2,
+    "warning_count": 1,
+    "last_updated": "2025-01-15T14:22:00Z"
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "insights": {
+    "topPerformers": [
+      {
+        "id": 1,
+        "name": "Agent.Rock",
+        "role": "Field Agent",
+        "resolvedCount": 13,
+        "totalCount": 15,
+        "resolutionRate": 86.7,
+        "rank": 1
+      },
+      {
+        "id": 5,
+        "name": "David Boateng",
+        "role": "Field Agent",
+        "resolvedCount": 12,
+        "totalCount": 14,
+        "resolutionRate": 85.7,
+        "rank": 2
+      },
+      {
+        "id": 2,
+        "name": "Sarah Kofi",
+        "role": "Community Liaison",
+        "resolvedCount": 11,
+        "totalCount": 12,
+        "resolutionRate": 91.7,
+        "rank": 3
+      }
+    ],
+    "communityInsights": [
+      {
+        "location": "Sefwi Wiawso Central",
+        "issuesReported": 15,
+        "avgResolutionTime": "3.2 days",
+        "resolutionRate": 87.5
+      },
+      {
+        "location": "Sefwi Wiawso North",
+        "issuesReported": 12,
+        "avgResolutionTime": "2.8 days",
+        "resolutionRate": 91.7
+      },
+      {
+        "location": "Sefwi Wiawso South",
+        "issuesReported": 10,
+        "avgResolutionTime": "4.1 days",
+        "resolutionRate": 80.0
+      },
+      {
+        "location": "Sefwi Wiawso East",
+        "issuesReported": 8,
+        "avgResolutionTime": "3.5 days",
+        "resolutionRate": 87.5
+      },
+      {
+        "location": "Sefwi Wiawso West",
+        "issuesReported": 6,
+        "avgResolutionTime": "2.9 days",
+        "resolutionRate": 83.3
+      }
+    ]
+  }
+}

@@ -33,6 +33,7 @@ return function ($app): void {
         '/v1/task-force' => ROUTE . 'v1/TaskForceRoute.php',
 
         // Admin routes (more specific first)
+        '/v1/admin/data' => ROUTE . 'v1/AdminDataRoute.php',
         '/v1/admin/dashboard' => ROUTE . 'v1/DashboardRoute.php',
         '/v1/admin/users' => ROUTE . 'v1/UserRoute.php',
         '/v1/admin/hero-slides' => ROUTE . 'v1/HeroSlideRoute.php',
@@ -49,6 +50,11 @@ return function ($app): void {
         '/v1/admin/officers' => ROUTE . 'v1/OfficerRoute.php',
         '/v1/admin/agents' => ROUTE . 'v1/AgentRoute.php',
         '/v1/admin/task-force' => ROUTE . 'v1/TaskForceRoute.php',
+
+        // New Dashboard Feature Routes
+        '/v1/announcements' => ROUTE . 'v1/AnnouncementRoute.php',
+        '/v1/jobs' => ROUTE . 'v1/EmploymentJobRoute.php',
+        '/v1/ideas' => ROUTE . 'v1/CommunityIdeaRoute.php',
     ];
 
     $loadedFiles = [];

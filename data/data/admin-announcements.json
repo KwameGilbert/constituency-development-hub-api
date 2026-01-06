@@ -1,0 +1,88 @@
+{
+  "announcements": [
+    {
+      "id": 1,
+      "title": "Community Town Hall Meeting - January 2025",
+      "slug": "town-hall-jan-2025",
+      "content": "Join us for our quarterly town hall meeting to discuss constituency developments and priorities for Q1 2025. We'll cover infrastructure updates, health initiatives, and community projects.",
+      "category": "events",
+      "priority": "high",
+      "status": "published",
+      "publish_date": "2025-01-10",
+      "expiry_date": "2025-01-25",
+      "created_at": "2025-01-05T10:00:00Z",
+      "published_at": "2025-01-10T09:00:00Z",
+      "updated_at": "2025-01-10T09:00:00Z"
+    },
+    {
+      "id": 2,
+      "title": "Road Closure Notice - Main Street Rehabilitation",
+      "slug": "road-closure-main-street",
+      "content": "Main Street will be temporarily closed for rehabilitation works from February 1-15, 2025. Alternative routes will be available via Secondary Road and Market Lane. Please plan your journeys accordingly.",
+      "category": "infrastructure",
+      "priority": "urgent",
+      "status": "published",
+      "publish_date": "2025-01-20",
+      "created_at": "2025-01-18T14:30:00Z",
+      "published_at": "2025-01-20T08:00:00Z",
+      "updated_at": "2025-01-20T08:00:00Z"
+    },
+    {
+      "id": 3,
+      "title": "Free Health Screening Program - Age 40+",
+      "slug": "health-screening-program",
+      "content": "Free comprehensive health screening for all constituents aged 40 and above. Services include blood pressure checks, diabetes screening, and general health assessments. Registration now open at the constituency office.",
+      "category": "health",
+      "priority": "medium",
+      "status": "draft",
+      "created_at": "2025-01-12T11:15:00Z",
+      "updated_at": "2025-01-12T11:15:00Z"
+    },
+    {
+      "id": 4,
+      "title": "Youth Skills Development Workshop",
+      "slug": "youth-skills-workshop",
+      "content": "A three-day workshop on digital skills, entrepreneurship, and career development for youth aged 18-30. Limited spots available - apply now!",
+      "category": "education",
+      "priority": "medium",
+      "status": "published",
+      "publish_date": "2025-01-15",
+      "expiry_date": "2025-02-10",
+      "created_at": "2025-01-08T16:45:00Z",
+      "published_at": "2025-01-15T10:00:00Z",
+      "updated_at": "2025-01-15T10:00:00Z"
+    },
+    {
+      "id": 5,
+      "title": "Constituency Development Fund Application Deadline",
+      "slug": "cdf-application-deadline",
+      "content": "Applications for the Constituency Development Fund are now open. Projects focusing on education, health, and infrastructure development are encouraged. Deadline: February 28, 2025.",
+      "category": "general",
+      "priority": "high",
+      "status": "published",
+      "publish_date": "2025-01-22",
+      "created_at": "2025-01-20T13:20:00Z",
+      "published_at": "2025-01-22T09:30:00Z",
+      "updated_at": "2025-01-22T09:30:00Z"
+    },
+    {
+      "id": 6,
+      "title": "COVID-19 Vaccination Drive Extended",
+      "slug": "covid-vaccination-drive",
+      "content": "Our COVID-19 vaccination program has been extended through March 2025. All vaccine types available including boosters. Walk-ins welcome at all health centers.",
+      "category": "health",
+      "priority": "urgent",
+      "status": "published",
+      "publish_date": "2025-01-25",
+      "created_at": "2025-01-23T12:00:00Z",
+      "published_at": "2025-01-25T08:15:00Z",
+      "updated_at": "2025-01-25T08:15:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 6,
+    "total_pages": 1
+  }
+}
