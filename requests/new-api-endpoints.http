@@ -1,11 +1,11 @@
 ### ============================================================
 ### CONSTITUENCY DEVELOPMENT HUB - API REQUESTS
-### Base URL: http://localhost:8000/v1
+### Base URL:  http://app.comdevhub-api.com/v1
 ### Updated: 2026-01-05 (Based on API Specifications)
 ### ============================================================
 
 ### Variables
-@baseUrl = http://localhost:8000/v1
+@baseUrl = http://app.comdevhub-api.com/v1
 @adminToken = YOUR_ADMIN_JWT_TOKEN_HERE
 
 ### ============================================================
