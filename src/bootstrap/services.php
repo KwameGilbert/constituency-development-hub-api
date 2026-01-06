@@ -34,6 +34,9 @@ use App\Controllers\FAQController;
 use App\Controllers\CommunityStatController;
 use App\Controllers\ContactInfoController;
 use App\Controllers\NewsletterController;
+use App\Controllers\AnnouncementController;
+use App\Controllers\EmploymentJobController;
+use App\Controllers\CommunityIdeaController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Middleware\JsonBodyParserMiddleware;
@@ -199,6 +202,19 @@ return function ($container) {
 
     $container->set(NewsletterController::class, function () {
         return new NewsletterController();
+    });
+
+    // New Admin Dashboard Feature Controllers
+    $container->set(AnnouncementController::class, function () {
+        return new AnnouncementController();
+    });
+
+    $container->set(EmploymentJobController::class, function () {
+        return new EmploymentJobController();
+    });
+
+    $container->set(CommunityIdeaController::class, function () {
+        return new CommunityIdeaController();
     });
     
     // ==================== MIDDLEWARES ====================
