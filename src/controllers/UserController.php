@@ -515,26 +515,53 @@ class UserController
         if ($user->role === 'agent') {
             $agent = Agent::where('user_id', $user->id)->first();
             if ($agent) {
-                $stats['total'] = IssueReport::where('reporter_id', $agent->id)->count();
+                // Fix: Use submitted_by_agent_id instead of reporter_id
+                $stats['total'] = IssueReport::where('submitted_by_agent_id', $agent->id)->count();
                 $stats['assigned'] = $stats['total'];
-                $stats['resolved'] = IssueReport::where('reporter_id', $agent->id)
-                    ->whereIn('status', ['resolved', 'closed'])->count();
-                $stats['pending'] = IssueReport::where('reporter_id', $agent->id)
-                    ->whereIn('status', ['pending', 'pending_review'])->count();
-                $stats['in_progress'] = IssueReport::where('reporter_id', $agent->id)
-                    ->where('status', 'in_progress')->count();
+                
+                $stats['resolved'] = IssueReport::where('submitted_by_agent_id', $agent->id)
+                    ->whereIn('status', [IssueReport::STATUS_RESOLVED, IssueReport::STATUS_CLOSED])->count();
+                
+                // Update statuses to match actual workflow values
+                $stats['pending'] = IssueReport::where('submitted_by_agent_id', $agent->id)
+                    ->whereIn('status', [
+                        IssueReport::STATUS_SUBMITTED, 
+                        IssueReport::STATUS_UNDER_OFFICER_REVIEW,
+                        IssueReport::STATUS_FORWARDED_TO_ADMIN
+                    ])->count();
+                
+                $stats['in_progress'] = IssueReport::where('submitted_by_agent_id', $agent->id)
+                    ->whereIn('status', [
+                        IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE,
+                        IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                        IssueReport::STATUS_RESOURCES_ALLOCATED,
+                        IssueReport::STATUS_RESOLUTION_IN_PROGRESS
+                    ])->count();
             }
         } elseif ($user->role === 'officer') {
             $officer = Officer::where('user_id', $user->id)->first();
             if ($officer) {
                 $stats['total'] = IssueReport::where('assigned_officer_id', $officer->id)->count();
                 $stats['assigned'] = $stats['total'];
+                
                 $stats['resolved'] = IssueReport::where('assigned_officer_id', $officer->id)
-                    ->whereIn('status', ['resolved', 'closed'])->count();
+                    ->whereIn('status', [IssueReport::STATUS_RESOLVED, IssueReport::STATUS_CLOSED])->count();
+                
+                // Update statuses to match actual workflow values
                 $stats['pending'] = IssueReport::where('assigned_officer_id', $officer->id)
-                    ->whereIn('status', ['pending', 'pending_review'])->count();
+                    ->whereIn('status', [
+                        IssueReport::STATUS_SUBMITTED,
+                        IssueReport::STATUS_UNDER_OFFICER_REVIEW
+                    ])->count();
+                
                 $stats['in_progress'] = IssueReport::where('assigned_officer_id', $officer->id)
-                    ->where('status', 'in_progress')->count();
+                    ->whereIn('status', [
+                        IssueReport::STATUS_FORWARDED_TO_ADMIN,
+                        IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE,
+                        IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                        IssueReport::STATUS_RESOURCES_ALLOCATED,
+                        IssueReport::STATUS_RESOLUTION_IN_PROGRESS
+                    ])->count();
             }
         }
 

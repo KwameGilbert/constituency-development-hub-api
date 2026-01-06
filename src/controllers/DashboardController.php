@@ -176,17 +176,29 @@ class DashboardController
             }
 
             // Get issues reported by this agent
-            $myIssuesTotal = IssueReport::where('reporter_id', $agent->id)->count();
-            $pending = IssueReport::where('reporter_id', $agent->id)
-                ->whereIn('status', ['pending', 'pending_review'])->count();
-            $inProgress = IssueReport::where('reporter_id', $agent->id)
-                ->where('status', 'in_progress')->count();
-            $resolved = IssueReport::where('reporter_id', $agent->id)
-                ->where('status', 'resolved')->count();
+            $myIssuesTotal = IssueReport::where('submitted_by_agent_id', $agent->id)->count();
+            
+            $pending = IssueReport::where('submitted_by_agent_id', $agent->id)
+                ->whereIn('status', [
+                    IssueReport::STATUS_SUBMITTED,
+                    IssueReport::STATUS_UNDER_OFFICER_REVIEW,
+                    IssueReport::STATUS_FORWARDED_TO_ADMIN
+                ])->count();
+                
+            $inProgress = IssueReport::where('submitted_by_agent_id', $agent->id)
+                ->whereIn('status', [
+                    IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE,
+                    IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                    IssueReport::STATUS_RESOURCES_ALLOCATED,
+                    IssueReport::STATUS_RESOLUTION_IN_PROGRESS
+                ])->count();
+                
+            $resolved = IssueReport::where('submitted_by_agent_id', $agent->id)
+                ->whereIn('status', [IssueReport::STATUS_RESOLVED, IssueReport::STATUS_CLOSED])->count();
 
             // Performance metrics (this month)
             $startOfMonth = now()->startOfMonth();
-            $issuesHandledThisMonth = IssueReport::where('reporter_id', $agent->id)
+            $issuesHandledThisMonth = IssueReport::where('submitted_by_agent_id', $agent->id)
                 ->where('created_at', '>=', $startOfMonth)
                 ->count();
 
