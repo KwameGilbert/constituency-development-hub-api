@@ -1,0 +1,816 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Models\User;
+use App\Models\Agent;
+use App\Models\Officer;
+use App\Models\TaskForce;
+use App\Models\IssueReport;
+use App\Models\Project;
+use App\Models\Announcement;
+use App\Models\EmploymentJob;
+use App\Models\CommunityIdea;
+use App\Helper\ResponseHelper;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Exception;
+use Carbon\Carbon;
+
+/**
+ * AdminDataController
+ * 
+ * Provides admin dashboard data endpoints for serving various data types.
+ * This controller serves both database data and static JSON data from the data folder.
+ * 
+ * Endpoints:
+ * - GET /v1/admin/data/agents - List agents data
+ * - GET /v1/admin/data/analytics/charts - Analytics chart data
+ * - GET /v1/admin/data/analytics/insights - Analytics insights
+ * - GET /v1/admin/data/analytics/metrics - Analytics metrics
+ * - GET /v1/admin/data/announcements - Announcements data
+ * - GET /v1/admin/data/audit-logs - Audit logs data
+ * - GET /v1/admin/data/employment-jobs - Employment jobs data
+ * - GET /v1/admin/data/ideas - Community ideas data
+ * - GET /v1/admin/data/metrics - Summary and entity metrics
+ * - GET /v1/admin/data/recent-issues - Recent issues data
+ * - GET /v1/admin/data/all - All admin dashboard data combined
+ */
+class AdminDataController
+{
+    /**
+     * Path to the data folder
+     */
+    private string $dataPath;
+
+    public function __construct()
+    {
+        // Path to the data folder (relative to the project root)
+        $this->dataPath = dirname(__DIR__, 2) . '/data/data/';
+    }
+
+    /**
+     * Load JSON data from a file
+     */
+    private function loadJsonFile(string $filename): ?array
+    {
+        $filePath = $this->dataPath . $filename;
+        
+        if (!file_exists($filePath)) {
+            return null;
+        }
+
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            return null;
+        }
+
+        $data = json_decode($content, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return null;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get agents data
+     * GET /v1/admin/data/agents
+     * 
+     * Returns agent data from the database with fallback to static JSON
+     */
+    public function getAgents(Request $request, Response $response): Response
+    {
+        try {
+            // Try to get data from database first
+            $agents = Agent::with('user')->get();
+            
+            if ($agents->isEmpty()) {
+                // Fallback to static JSON data
+                $data = $this->loadJsonFile('admin-agents.json');
+                if ($data === null) {
+                    return ResponseHelper::error($response, 'Agents data not found', 404);
+                }
+                return ResponseHelper::success($response, 'Agents data retrieved (static)', $data);
+            }
+
+            // Transform database data to match expected format
+            $agentsData = $agents->map(function ($agent) {
+                return [
+                    'id' => $agent->id,
+                    'name' => $agent->user->name ?? 'Unknown',
+                    'email' => $agent->user->email ?? '',
+                    'phone' => $agent->user->phone ?? '',
+                    'location' => $agent->assigned_location ?? '',
+                    'status' => $agent->user->status ?? 'inactive',
+                    'role' => 'Field Agent',
+                    'lastLogin' => $agent->user->last_login_at ?? null,
+                    'dateAdded' => $agent->created_at ?? null,
+                    'issuesHandled' => $agent->reports_submitted ?? 0,
+                    'activeIssues' => IssueReport::where('submitted_by_agent_id', $agent->id)
+                        ->whereNotIn('status', ['resolved', 'closed'])
+                        ->count(),
+                    'performance' => $this->calculatePerformance($agent->reports_submitted ?? 0),
+                ];
+            });
+
+            $summary = [
+                'total' => $agents->count(),
+                'active' => $agents->filter(fn($a) => $a->user && $a->user->status === 'active')->count(),
+                'inactive' => $agents->filter(fn($a) => !$a->user || $a->user->status !== 'active')->count(),
+            ];
+
+            return ResponseHelper::success($response, 'Agents data retrieved', [
+                'agents' => $agentsData,
+                'summary' => $summary,
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to retrieve agents data', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Calculate performance rating based on issues handled
+     */
+    private function calculatePerformance(int $issuesHandled): string
+    {
+        if ($issuesHandled >= 40) return 'Excellent';
+        if ($issuesHandled >= 25) return 'Good';
+        if ($issuesHandled >= 10) return 'Average';
+        return 'Developing';
+    }
+
+    /**
+     * Get analytics charts data
+     * GET /v1/admin/data/analytics/charts
+     */
+    public function getAnalyticsCharts(Request $request, Response $response): Response
+    {
+        try {
+            // Try to generate from database
+            $issuesByStatus = [
+                ['name' => 'Resolved', 'value' => IssueReport::where('status', 'resolved')->count(), 'color' => '#10b981'],
+                ['name' => 'In Progress', 'value' => IssueReport::where('status', 'in_progress')->count(), 'color' => '#f59e0b'],
+                ['name' => 'Pending', 'value' => IssueReport::whereIn('status', ['pending', 'pending_review'])->count(), 'color' => '#3b82f6'],
+                ['name' => 'New', 'value' => IssueReport::where('status', 'submitted')->count(), 'color' => '#ef4444'],
+            ];
+
+            // Monthly trends (last 6 months)
+            $monthlyTrends = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $date = Carbon::now()->subMonths($i);
+                $monthStart = $date->copy()->startOfMonth();
+                $monthEnd = $date->copy()->endOfMonth();
+                
+                $monthlyTrends[] = [
+                    'name' => $date->format('Y-m'),
+                    'issues' => IssueReport::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
+                    'resolved' => IssueReport::whereBetween('resolved_at', [$monthStart, $monthEnd])->count(),
+                ];
+            }
+
+            // Category distribution
+            $categories = IssueReport::selectRaw('category, COUNT(*) as count')
+                ->groupBy('category')
+                ->get();
+
+            $colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280'];
+            $categoryDistribution = $categories->map(function ($cat, $index) use ($colors) {
+                return [
+                    'name' => ucfirst($cat->category ?? 'Other'),
+                    'value' => $cat->count,
+                    'color' => $colors[$index % count($colors)],
+                ];
+            });
+
+            $data = [
+                'charts' => [
+                    'issueStatusDistribution' => $issuesByStatus,
+                    'monthlyTrends' => $monthlyTrends,
+                    'categoryDistribution' => $categoryDistribution,
+                ],
+            ];
+
+            // If no data in database, fallback to static JSON
+            if (array_sum(array_column($issuesByStatus, 'value')) === 0) {
+                $staticData = $this->loadJsonFile('admin-analytics-charts.json');
+                if ($staticData !== null) {
+                    return ResponseHelper::success($response, 'Analytics charts data retrieved (static)', $staticData);
+                }
+            }
+
+            return ResponseHelper::success($response, 'Analytics charts data retrieved', $data);
+        } catch (Exception $e) {
+            // Fallback to static JSON on error
+            $data = $this->loadJsonFile('admin-analytics-charts.json');
+            if ($data === null) {
+                return ResponseHelper::error($response, 'Analytics charts data not found', 404);
+            }
+            return ResponseHelper::success($response, 'Analytics charts data retrieved (static)', $data);
+        }
+    }
+
+    /**
+     * Get analytics insights data
+     * GET /v1/admin/data/analytics/insights
+     */
+    public function getAnalyticsInsights(Request $request, Response $response): Response
+    {
+        try {
+            // Get top performers from agents
+            $topAgents = Agent::with('user')
+                ->orderBy('reports_submitted', 'desc')
+                ->limit(5)
+                ->get();
+
+            $topPerformers = $topAgents->map(function ($agent, $index) {
+                $total = $agent->reports_submitted ?? 0;
+                $resolved = IssueReport::where('submitted_by_agent_id', $agent->id)
+                    ->where('status', 'resolved')
+                    ->count();
+                
+                return [
+                    'id' => $agent->id,
+                    'name' => $agent->user->name ?? 'Unknown',
+                    'role' => 'Field Agent',
+                    'resolvedCount' => $resolved,
+                    'totalCount' => $total,
+                    'resolutionRate' => $total > 0 ? round(($resolved / $total) * 100, 1) : 0,
+                    'rank' => $index + 1,
+                ];
+            });
+
+            // Community insights by location
+            $locationStats = IssueReport::selectRaw('location, COUNT(*) as total, 
+                SUM(CASE WHEN status = "resolved" THEN 1 ELSE 0 END) as resolved')
+                ->groupBy('location')
+                ->orderBy('total', 'desc')
+                ->limit(5)
+                ->get();
+
+            $communityInsights = $locationStats->map(function ($stat) {
+                $resolutionRate = $stat->total > 0 ? round(($stat->resolved / $stat->total) * 100, 1) : 0;
+                return [
+                    'location' => $stat->location ?? 'Unknown',
+                    'issuesReported' => $stat->total,
+                    'avgResolutionTime' => '3.5 days', // Placeholder - would need status history for accurate calculation
+                    'resolutionRate' => $resolutionRate,
+                ];
+            });
+
+            $data = [
+                'insights' => [
+                    'topPerformers' => $topPerformers,
+                    'communityInsights' => $communityInsights,
+                ],
+            ];
+
+            // Fallback to static if no data
+            if ($topPerformers->isEmpty()) {
+                $staticData = $this->loadJsonFile('admin-analytics-insights.json');
+                if ($staticData !== null) {
+                    return ResponseHelper::success($response, 'Analytics insights data retrieved (static)', $staticData);
+                }
+            }
+
+            return ResponseHelper::success($response, 'Analytics insights data retrieved', $data);
+        } catch (Exception $e) {
+            $data = $this->loadJsonFile('admin-analytics-insights.json');
+            if ($data === null) {
+                return ResponseHelper::error($response, 'Analytics insights data not found', 404);
+            }
+            return ResponseHelper::success($response, 'Analytics insights data retrieved (static)', $data);
+        }
+    }
+
+    /**
+     * Get analytics metrics data
+     * GET /v1/admin/data/analytics/metrics
+     */
+    public function getAnalyticsMetrics(Request $request, Response $response): Response
+    {
+        try {
+            $now = Carbon::now();
+            $lastWeek = $now->copy()->subWeek();
+            $twoWeeksAgo = $now->copy()->subWeeks(2);
+
+            // Current metrics
+            $totalIssues = IssueReport::count();
+            $activeStaff = User::where('status', 'active')->count();
+            $totalProjects = Project::count();
+            $activeBudget = Project::whereIn('status', ['planning', 'ongoing'])->sum('budget');
+            $newIssuesThisWeek = IssueReport::where('created_at', '>=', $lastWeek)->count();
+            $resolvedThisWeek = IssueReport::where('resolved_at', '>=', $lastWeek)->count();
+            $activeUsers7Days = User::where('last_login_at', '>=', $now->copy()->subDays(7))->count();
+            $ongoingProjects = Project::where('status', 'ongoing')->count();
+
+            // Previous week metrics for trends
+            $newIssuesLastWeek = IssueReport::whereBetween('created_at', [$twoWeeksAgo, $lastWeek])->count();
+            $resolvedLastWeek = IssueReport::whereBetween('resolved_at', [$twoWeeksAgo, $lastWeek])->count();
+
+            // Calculate trends (percentage change)
+            $calcTrend = fn($current, $previous) => $previous > 0 
+                ? round((($current - $previous) / $previous) * 100, 1) 
+                : ($current > 0 ? 100 : 0);
+
+            $data = [
+                'metrics' => [
+                    'totalIssues' => $totalIssues,
+                    'activeStaff' => $activeStaff,
+                    'totalProjects' => $totalProjects,
+                    'activeBudget' => (float) $activeBudget,
+                    'newIssuesThisWeek' => $newIssuesThisWeek,
+                    'resolvedThisWeek' => $resolvedThisWeek,
+                    'activeUsers7Days' => $activeUsers7Days,
+                    'ongoingProjects' => $ongoingProjects,
+                ],
+                'trends' => [
+                    'issuesChange' => $calcTrend($totalIssues, $totalIssues - $newIssuesThisWeek),
+                    'staffChange' => 0, // Would need historical data
+                    'projectsChange' => 0,
+                    'budgetChange' => 0,
+                    'newIssuesChange' => $calcTrend($newIssuesThisWeek, $newIssuesLastWeek),
+                    'resolvedChange' => $calcTrend($resolvedThisWeek, $resolvedLastWeek),
+                    'activeUsersChange' => 0,
+                    'ongoingProjectsChange' => 0,
+                ],
+            ];
+
+            return ResponseHelper::success($response, 'Analytics metrics data retrieved', $data);
+        } catch (Exception $e) {
+            $data = $this->loadJsonFile('admin-analytics-metrics.json');
+            if ($data === null) {
+                return ResponseHelper::error($response, 'Analytics metrics data not found', 404);
+            }
+            return ResponseHelper::success($response, 'Analytics metrics data retrieved (static)', $data);
+        }
+    }
+
+    /**
+     * Get announcements data
+     * GET /v1/admin/data/announcements
+     */
+    public function getAnnouncements(Request $request, Response $response): Response
+    {
+        try {
+            $params = $request->getQueryParams();
+            $page = (int) ($params['page'] ?? 1);
+            $limit = (int) ($params['limit'] ?? 10);
+            $status = $params['status'] ?? null;
+
+            $query = Announcement::query();
+
+            if ($status) {
+                $query->where('status', $status);
+            }
+
+            $total = $query->count();
+            $announcements = $query
+                ->orderBy('is_pinned', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->offset(($page - 1) * $limit)
+                ->limit($limit)
+                ->get();
+
+            if ($announcements->isEmpty()) {
+                // Fallback to static JSON
+                $data = $this->loadJsonFile('admin-announcements.json');
+                if ($data === null) {
+                    return ResponseHelper::success($response, 'No announcements found', [
+                        'announcements' => [],
+                        'pagination' => ['page' => 1, 'limit' => $limit, 'total' => 0, 'total_pages' => 0]
+                    ]);
+                }
+                return ResponseHelper::success($response, 'Announcements data retrieved (static)', $data);
+            }
+
+            $data = [
+                'announcements' => $announcements->map(fn($a) => $a->toPublicArray()),
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => $total,
+                    'total_pages' => (int) ceil($total / $limit),
+                ],
+            ];
+
+            return ResponseHelper::success($response, 'Announcements data retrieved', $data);
+        } catch (Exception $e) {
+            $data = $this->loadJsonFile('admin-announcements.json');
+            if ($data === null) {
+                return ResponseHelper::error($response, 'Announcements data not found', 404);
+            }
+            return ResponseHelper::success($response, 'Announcements data retrieved (static)', $data);
+        }
+    }
+
+    /**
+     * Get audit logs data
+     * GET /v1/admin/data/audit-logs
+     */
+    public function getAuditLogs(Request $request, Response $response): Response
+    {
+        try {
+            // Get query parameters for pagination
+            $params = $request->getQueryParams();
+            $page = (int) ($params['page'] ?? 1);
+            $limit = (int) ($params['limit'] ?? 50);
+
+            // Try to get from database (audit_logs table exists)
+            $query = \Illuminate\Database\Capsule\Manager::table('audit_logs')
+                ->leftJoin('users', 'audit_logs.user_id', '=', 'users.id')
+                ->select([
+                    'audit_logs.id',
+                    'users.name as user',
+                    'audit_logs.action',
+                    'audit_logs.entity_type as resource',
+                    'audit_logs.ip_address as ip',
+                    'audit_logs.created_at as timestamp',
+                    'audit_logs.user_agent',
+                    'audit_logs.metadata',
+                ]);
+
+            $total = $query->count();
+            $logs = $query
+                ->orderBy('audit_logs.created_at', 'desc')
+                ->offset(($page - 1) * $limit)
+                ->limit($limit)
+                ->get();
+
+            if ($logs->isEmpty()) {
+                // Fallback to static JSON
+                $data = $this->loadJsonFile('admin-audit-logs.json');
+                if ($data === null) {
+                    return ResponseHelper::error($response, 'Audit logs data not found', 404);
+                }
+                return ResponseHelper::success($response, 'Audit logs data retrieved (static)', $data);
+            }
+
+            $auditLogs = $logs->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'user' => $log->user ?? 'System',
+                    'action' => $log->action,
+                    'resource' => $log->resource ?? 'Unknown',
+                    'ip' => $log->ip ?? 'localhost',
+                    'timestamp' => $log->timestamp,
+                    'status' => 'success',
+                    'user_agent' => $log->user_agent ?? 'Unknown',
+                    'session_id' => 'sess_' . substr(md5((string) $log->id), 0, 6),
+                ];
+            });
+
+            $data = [
+                'auditLogs' => $auditLogs,
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => $total,
+                    'total_pages' => ceil($total / $limit),
+                ],
+                'summary' => [
+                    'total_logs' => $total,
+                    'success_count' => $total, // Would need proper status tracking
+                    'failed_count' => 0,
+                    'warning_count' => 0,
+                    'last_updated' => $logs->first()->timestamp ?? null,
+                ],
+            ];
+
+            return ResponseHelper::success($response, 'Audit logs data retrieved', $data);
+        } catch (Exception $e) {
+            $data = $this->loadJsonFile('admin-audit-logs.json');
+            if ($data === null) {
+                return ResponseHelper::error($response, 'Audit logs data not found', 404);
+            }
+            return ResponseHelper::success($response, 'Audit logs data retrieved (static)', $data);
+        }
+    }
+
+    /**
+     * Get employment jobs data
+     * GET /v1/admin/data/employment-jobs
+     */
+    public function getEmploymentJobs(Request $request, Response $response): Response
+    {
+        try {
+            $params = $request->getQueryParams();
+            $page = (int) ($params['page'] ?? 1);
+            $limit = (int) ($params['limit'] ?? 20);
+            $status = $params['status'] ?? null;
+            $category = $params['category'] ?? null;
+
+            $query = EmploymentJob::query();
+
+            if ($status) {
+                $query->where('status', $status);
+            }
+            if ($category) {
+                $query->where('category', $category);
+            }
+
+            $total = $query->count();
+            $jobs = $query
+                ->orderBy('is_featured', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->offset(($page - 1) * $limit)
+                ->limit($limit)
+                ->get();
+
+            if ($jobs->isEmpty()) {
+                // Fallback to static JSON
+                $data = $this->loadJsonFile('admin-employment-jobs.json');
+                if ($data === null) {
+                    return ResponseHelper::success($response, 'No employment jobs found', [
+                        'jobs' => [],
+                        'pagination' => ['page' => 1, 'limit' => $limit, 'total' => 0, 'total_pages' => 0],
+                        'statistics' => EmploymentJob::getStatistics(),
+                    ]);
+                }
+                return ResponseHelper::success($response, 'Employment jobs data retrieved (static)', $data);
+            }
+
+            $data = [
+                'jobs' => $jobs->map(fn($job) => $job->toPublicArray()),
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => $total,
+                    'total_pages' => (int) ceil($total / $limit),
+                ],
+                'statistics' => EmploymentJob::getStatistics(),
+            ];
+
+            return ResponseHelper::success($response, 'Employment jobs data retrieved', $data);
+        } catch (Exception $e) {
+            $data = $this->loadJsonFile('admin-employment-jobs.json');
+            if ($data === null) {
+                return ResponseHelper::error($response, 'Employment jobs data not found', 404);
+            }
+            return ResponseHelper::success($response, 'Employment jobs data retrieved (static)', $data);
+        }
+    }
+
+    /**
+     * Get community ideas data
+     * GET /v1/admin/data/ideas
+     */
+    public function getIdeas(Request $request, Response $response): Response
+    {
+        try {
+            $params = $request->getQueryParams();
+            $page = (int) ($params['page'] ?? 1);
+            $limit = (int) ($params['limit'] ?? 20);
+            $status = $params['status'] ?? null;
+            $category = $params['category'] ?? null;
+
+            $query = CommunityIdea::query();
+
+            if ($status) {
+                $query->where('status', $status);
+            }
+            if ($category) {
+                $query->where('category', $category);
+            }
+
+            $total = $query->count();
+            $ideas = $query
+                ->orderBy('votes', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->offset(($page - 1) * $limit)
+                ->limit($limit)
+                ->get();
+
+            if ($ideas->isEmpty()) {
+                // Fallback to static JSON
+                $data = $this->loadJsonFile('admin-ideas.json');
+                if ($data === null) {
+                    return ResponseHelper::success($response, 'No community ideas found', [
+                        'ideas' => [],
+                        'pagination' => ['page' => 1, 'limit' => $limit, 'total' => 0, 'total_pages' => 0],
+                        'statistics' => CommunityIdea::getStatistics(),
+                    ]);
+                }
+                return ResponseHelper::success($response, 'Ideas data retrieved (static)', $data);
+            }
+
+            $data = [
+                'ideas' => $ideas->map(fn($idea) => $idea->toPublicArray()),
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => $total,
+                    'total_pages' => (int) ceil($total / $limit),
+                ],
+                'statistics' => CommunityIdea::getStatistics(),
+            ];
+
+            return ResponseHelper::success($response, 'Ideas data retrieved', $data);
+        } catch (Exception $e) {
+            $data = $this->loadJsonFile('admin-ideas.json');
+            if ($data === null) {
+                return ResponseHelper::error($response, 'Ideas data not found', 404);
+            }
+            return ResponseHelper::success($response, 'Ideas data retrieved (static)', $data);
+        }
+    }
+
+    /**
+     * Get summary and entity metrics data
+     * GET /v1/admin/data/metrics
+     */
+    public function getMetrics(Request $request, Response $response): Response
+    {
+        try {
+            // Summary metrics
+            $totalIssues = IssueReport::count();
+            $pendingReview = IssueReport::whereIn('status', ['pending', 'pending_review'])->count();
+            $activeUsers = User::where('status', 'active')->count();
+            $totalUsers = User::count();
+            $totalProjects = Project::count();
+            $ongoingProjects = Project::where('status', 'ongoing')->count();
+            $totalBudget = Project::sum('budget');
+
+            // Entity metrics
+            $fieldAgents = Agent::count();
+            $officers = Officer::count();
+            $administrators = User::where('role', 'web_admin')->count();
+            $jobOpportunities = EmploymentJob::where('status', 'published')->count();
+
+            $data = [
+                'summaryMetrics' => [
+                    [
+                        'id' => 'totalIssues',
+                        'label' => 'Total Issues',
+                        'value' => $totalIssues,
+                        'subtitle' => "{$pendingReview} pending review",
+                        'icon' => 'ClipboardList',
+                        'color' => 'blue',
+                    ],
+                    [
+                        'id' => 'activeUsers',
+                        'label' => 'Active Users',
+                        'value' => $activeUsers,
+                        'subtitle' => "{$totalUsers} total registered",
+                        'icon' => 'Users',
+                        'color' => 'emerald',
+                    ],
+                    [
+                        'id' => 'projects',
+                        'label' => 'Projects',
+                        'value' => $totalProjects,
+                        'subtitle' => "{$ongoingProjects} ongoing",
+                        'icon' => 'FolderKanban',
+                        'color' => 'purple',
+                    ],
+                    [
+                        'id' => 'totalBudget',
+                        'label' => 'Total Budget',
+                        'value' => '₵' . number_format((float) $totalBudget, 0),
+                        'subtitle' => 'Project allocations',
+                        'icon' => 'Wallet',
+                        'color' => 'amber',
+                    ],
+                ],
+                'entityMetrics' => [
+                    [
+                        'id' => 'fieldAgents',
+                        'label' => 'Field Agents',
+                        'value' => $fieldAgents,
+                        'icon' => 'Users',
+                        'color' => 'blue',
+                    ],
+                    [
+                        'id' => 'officers',
+                        'label' => 'Officers',
+                        'value' => $officers,
+                        'icon' => 'ShieldCheck',
+                        'color' => 'indigo',
+                    ],
+                    [
+                        'id' => 'administrators',
+                        'label' => 'Administrators',
+                        'value' => $administrators,
+                        'icon' => 'UserCog',
+                        'color' => 'red',
+                    ],
+                    [
+                        'id' => 'jobOpportunities',
+                        'label' => 'Job Opportunities',
+                        'value' => $jobOpportunities,
+                        'icon' => 'Briefcase',
+                        'color' => 'green',
+                    ],
+                ],
+            ];
+
+            return ResponseHelper::success($response, 'Metrics data retrieved', $data);
+        } catch (Exception $e) {
+            $data = $this->loadJsonFile('admin-metrics.json');
+            if ($data === null) {
+                return ResponseHelper::error($response, 'Metrics data not found', 404);
+            }
+            return ResponseHelper::success($response, 'Metrics data retrieved (static)', $data);
+        }
+    }
+
+    /**
+     * Get recent issues data
+     * GET /v1/admin/data/recent-issues
+     */
+    public function getRecentIssues(Request $request, Response $response): Response
+    {
+        try {
+            $params = $request->getQueryParams();
+            $limit = (int) ($params['limit'] ?? 10);
+
+            $issues = IssueReport::with(['submittedByAgent.user', 'assignedOfficer.user'])
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get();
+
+            if ($issues->isEmpty()) {
+                // Fallback to static JSON
+                $data = $this->loadJsonFile('admin-recent-issues.json');
+                if ($data === null) {
+                    return ResponseHelper::error($response, 'Recent issues data not found', 404);
+                }
+                return ResponseHelper::success($response, 'Recent issues data retrieved (static)', $data);
+            }
+
+            $recentIssues = $issues->map(function ($issue) {
+                return [
+                    'id' => $issue->case_id ?? 'ISS-' . str_pad((string) $issue->id, 4, '0', STR_PAD_LEFT),
+                    'title' => $issue->title,
+                    'description' => $issue->description ?? '',
+                    'agent' => $issue->submittedByAgent?->user?->name ?? 'Unknown',
+                    'status' => $this->formatStatus($issue->status),
+                    'severity' => ucfirst($issue->priority ?? 'medium'),
+                    'date' => $issue->created_at ? Carbon::parse($issue->created_at)->format('Y-m-d') : null,
+                    'category' => ucfirst($issue->category ?? 'General'),
+                ];
+            });
+
+            return ResponseHelper::success($response, 'Recent issues data retrieved', [
+                'recentIssues' => $recentIssues,
+            ]);
+        } catch (Exception $e) {
+            $data = $this->loadJsonFile('admin-recent-issues.json');
+            if ($data === null) {
+                return ResponseHelper::error($response, 'Recent issues data not found', 404);
+            }
+            return ResponseHelper::success($response, 'Recent issues data retrieved (static)', $data);
+        }
+    }
+
+    /**
+     * Format status for display
+     */
+    private function formatStatus(string $status): string
+    {
+        $statusMap = [
+            'submitted' => 'New',
+            'pending' => 'Pending Review',
+            'pending_review' => 'Pending Review',
+            'acknowledged' => 'Acknowledged',
+            'assigned' => 'Assigned',
+            'in_progress' => 'In Progress',
+            'resolved' => 'Resolved',
+            'closed' => 'Closed',
+            'rejected' => 'Rejected',
+        ];
+
+        return $statusMap[$status] ?? ucfirst(str_replace('_', ' ', $status));
+    }
+
+    /**
+     * Get all admin dashboard data combined
+     * GET /v1/admin/data/all
+     */
+    public function getAllData(Request $request, Response $response): Response
+    {
+        try {
+            $data = [
+                'agents' => $this->loadJsonFile('admin-agents.json'),
+                'analyticsCharts' => $this->loadJsonFile('admin-analytics-charts.json'),
+                'analyticsInsights' => $this->loadJsonFile('admin-analytics-insights.json'),
+                'analyticsMetrics' => $this->loadJsonFile('admin-analytics-metrics.json'),
+                'announcements' => $this->loadJsonFile('admin-announcements.json'),
+                'auditLogs' => $this->loadJsonFile('admin-audit-logs.json'),
+                'employmentJobs' => $this->loadJsonFile('admin-employment-jobs.json'),
+                'ideas' => $this->loadJsonFile('admin-ideas.json'),
+                'metrics' => $this->loadJsonFile('admin-metrics.json'),
+                'recentIssues' => $this->loadJsonFile('admin-recent-issues.json'),
+            ];
+
+            // Filter out null values
+            $data = array_filter($data, fn($item) => $item !== null);
+
+            return ResponseHelper::success($response, 'All admin data retrieved', $data);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to retrieve admin data', 500, $e->getMessage());
+        }
+    }
+}
