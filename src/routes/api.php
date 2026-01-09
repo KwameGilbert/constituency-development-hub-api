@@ -50,11 +50,16 @@ return function ($app): void {
         '/v1/admin/officers' => ROUTE . 'v1/OfficerRoute.php',
         '/v1/admin/agents' => ROUTE . 'v1/AgentRoute.php',
         '/v1/admin/task-force' => ROUTE . 'v1/TaskForceRoute.php',
+        '/v1/admin/locations' => ROUTE . 'v1/LocationRoute.php',
+        '/v1/admin/youth-programs' => ROUTE . 'v1/YouthProgramRoute.php',
+        '/v1/admin/notifications' => ROUTE . 'v1/NotificationRoute.php',
 
         // New Dashboard Feature Routes
         '/v1/announcements' => ROUTE . 'v1/AnnouncementRoute.php',
         '/v1/jobs' => ROUTE . 'v1/EmploymentJobRoute.php',
         '/v1/ideas' => ROUTE . 'v1/CommunityIdeaRoute.php',
+        '/v1/youth-programs' => ROUTE . 'v1/YouthProgramRoute.php',
+        '/v1/notifications' => ROUTE . 'v1/NotificationRoute.php',
     ];
 
     $loadedFiles = [];
