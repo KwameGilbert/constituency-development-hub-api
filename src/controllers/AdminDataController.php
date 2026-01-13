@@ -805,12 +805,236 @@ class AdminDataController
                 'recentIssues' => $this->loadJsonFile('admin-recent-issues.json'),
             ];
 
-            // Filter out null values
-            $data = array_filter($data, fn($item) => $item !== null);
-
             return ResponseHelper::success($response, 'All admin data retrieved', $data);
         } catch (Exception $e) {
             return ResponseHelper::error($response, 'Failed to retrieve admin data', 500, $e->getMessage());
         }
     }
+
+    /**
+     * Generate a custom report based on user-selected parameters
+     * POST /v1/admin/data/reports/generate
+     */
+    public function generateReport(Request $request, Response $response): Response
+    {
+        try {
+            $body = $request->getParsedBody();
+            $reportType = $body['reportType'] ?? 'issues';
+            $columns = $body['columns'] ?? [];
+            $filters = $body['filters'] ?? [];
+            $dateRange = $body['dateRange'] ?? 'all';
+            $page = (int) ($body['page'] ?? 1);
+            $limit = (int) ($body['limit'] ?? 50);
+
+            $data = [];
+            $total = 0;
+
+            switch ($reportType) {
+                case 'issues':
+                    $result = $this->generateIssuesReport($columns, $filters, $dateRange, $page, $limit);
+                    $data = $result['data'];
+                    $total = $result['total'];
+                    break;
+                    
+                case 'projects':
+                    $result = $this->generateProjectsReport($columns, $filters, $dateRange, $page, $limit);
+                    $data = $result['data'];
+                    $total = $result['total'];
+                    break;
+                    
+                case 'users':
+                    $result = $this->generateUsersReport($columns, $filters, $dateRange, $page, $limit);
+                    $data = $result['data'];
+                    $total = $result['total'];
+                    break;
+                    
+                default:
+                    return ResponseHelper::error($response, 'Invalid report type', 400);
+            }
+
+            return ResponseHelper::success($response, 'Report generated successfully', [
+                'reportType' => $reportType,
+                'columns' => $columns,
+                'rows' => $data,
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => $total,
+                    'total_pages' => (int) ceil($total / $limit),
+                ],
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to generate report', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate Issues report
+     */
+    private function generateIssuesReport(array $columns, array $filters, string $dateRange, int $page, int $limit): array
+    {
+        $query = IssueReport::with(['submittedByAgent.user', 'assignedOfficer.user']);
+
+        // Apply filters
+        if (!empty($filters['status']) && $filters['status'] !== 'any') {
+            $query->where('status', $filters['status']);
+        }
+        if (!empty($filters['severity']) && $filters['severity'] !== 'any') {
+            $query->where('priority', $filters['severity']);
+        }
+        if (!empty($filters['category']) && $filters['category'] !== 'any') {
+            $query->where('category', $filters['category']);
+        }
+
+        // Apply date range
+        $this->applyDateRange($query, $dateRange);
+
+        $total = $query->count();
+        $issues = $query->orderBy('created_at', 'desc')
+            ->offset(($page - 1) * $limit)
+            ->limit($limit)
+            ->get();
+
+        // Map data to selected columns
+        $data = $issues->map(function ($issue) use ($columns) {
+            $row = [];
+            $columnMap = [
+                'id' => $issue->case_id ?? 'ISS-' . str_pad((string) $issue->id, 4, '0', STR_PAD_LEFT),
+                'title' => $issue->title,
+                'status' => $this->formatStatus($issue->status),
+                'severity' => ucfirst($issue->priority ?? 'medium'),
+                'type' => $issue->type ?? 'General',
+                'category' => ucfirst($issue->category ?? 'Unknown'),
+                'sector' => $issue->sector ?? 'N/A',
+                'subsector' => $issue->subsector ?? 'N/A',
+                'agent' => $issue->submittedByAgent?->user?->name ?? 'Unknown',
+                'officer' => $issue->assignedOfficer?->user?->name ?? 'Unassigned',
+                'people' => $issue->people_affected ?? 0,
+                'budget' => $issue->estimated_budget ?? 0,
+                'created' => $issue->created_at ? Carbon::parse($issue->created_at)->format('Y-m-d H:i') : null,
+                'resolved' => $issue->resolved_at ? Carbon::parse($issue->resolved_at)->format('Y-m-d H:i') : null,
+                'community' => $issue->location ?? 'Unknown',
+                'smaller' => $issue->smaller_community ?? 'N/A',
+                'suburb' => $issue->suburb ?? 'N/A',
+                'cottage' => $issue->cottage ?? 'N/A',
+            ];
+
+            foreach ($columns as $col) {
+                $row[$col] = $columnMap[$col] ?? null;
+            }
+            return $row;
+        })->toArray();
+
+        return ['data' => $data, 'total' => $total];
+    }
+
+    /**
+     * Generate Projects report
+     */
+    private function generateProjectsReport(array $columns, array $filters, string $dateRange, int $page, int $limit): array
+    {
+        $query = Project::query();
+
+        if (!empty($filters['status']) && $filters['status'] !== 'any') {
+            $query->where('status', $filters['status']);
+        }
+
+        $this->applyDateRange($query, $dateRange);
+
+        $total = $query->count();
+        $projects = $query->orderBy('created_at', 'desc')
+            ->offset(($page - 1) * $limit)
+            ->limit($limit)
+            ->get();
+
+        $data = $projects->map(function ($project) use ($columns) {
+            $row = [];
+            $columnMap = [
+                'id' => $project->id,
+                'title' => $project->title,
+                'status' => ucfirst($project->status ?? 'unknown'),
+                'sector' => $project->sector ?? 'N/A',
+                'budget' => $project->budget ?? 0,
+                'created' => $project->created_at ? Carbon::parse($project->created_at)->format('Y-m-d') : null,
+                'community' => $project->location ?? 'Unknown',
+            ];
+
+            foreach ($columns as $col) {
+                $row[$col] = $columnMap[$col] ?? null;
+            }
+            return $row;
+        })->toArray();
+
+        return ['data' => $data, 'total' => $total];
+    }
+
+    /**
+     * Generate Users report
+     */
+    private function generateUsersReport(array $columns, array $filters, string $dateRange, int $page, int $limit): array
+    {
+        $query = User::query();
+
+        if (!empty($filters['status']) && $filters['status'] !== 'any') {
+            $query->where('status', $filters['status']);
+        }
+        if (!empty($filters['role']) && $filters['role'] !== 'any') {
+            $query->where('role', $filters['role']);
+        }
+
+        $this->applyDateRange($query, $dateRange);
+
+        $total = $query->count();
+        $users = $query->orderBy('created_at', 'desc')
+            ->offset(($page - 1) * $limit)
+            ->limit($limit)
+            ->get();
+
+        $data = $users->map(function ($user) use ($columns) {
+            $row = [];
+            $columnMap = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => ucfirst($user->role ?? 'user'),
+                'status' => ucfirst($user->status ?? 'active'),
+                'created' => $user->created_at ? Carbon::parse($user->created_at)->format('Y-m-d') : null,
+            ];
+
+            foreach ($columns as $col) {
+                $row[$col] = $columnMap[$col] ?? null;
+            }
+            return $row;
+        })->toArray();
+
+        return ['data' => $data, 'total' => $total];
+    }
+
+    /**
+     * Apply date range filter to query
+     */
+    private function applyDateRange($query, string $dateRange): void
+    {
+        $now = Carbon::now();
+        
+        switch ($dateRange) {
+            case 'today':
+                $query->whereDate('created_at', $now->toDateString());
+                break;
+            case 'week':
+                $query->where('created_at', '>=', $now->copy()->startOfWeek());
+                break;
+            case 'month':
+                $query->where('created_at', '>=', $now->copy()->startOfMonth());
+                break;
+            case 'quarter':
+                $query->where('created_at', '>=', $now->copy()->subMonths(3));
+                break;
+            case 'year':
+                $query->where('created_at', '>=', $now->copy()->startOfYear());
+                break;
+            // 'all' or default - no filter
+        }
+    }
 }
+

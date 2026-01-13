@@ -58,6 +58,7 @@ class User extends Model
     const UPDATED_AT = 'updated_at';
 
     // Roles - Constituency Development Hub
+    const ROLE_ADMIN = 'admin';
     const ROLE_WEB_ADMIN = 'web_admin';
     const ROLE_OFFICER = 'officer';
     const ROLE_AGENT = 'agent';
@@ -232,6 +233,15 @@ class User extends Model
      */
 
     /**
+     * Check if user is an admin.
+     * @return bool
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    /**
      * Check if user is a web admin.
      * @return bool
      */
@@ -259,12 +269,12 @@ class User extends Model
     }
 
     /**
-     * Check if user is staff (web_admin or officer).
+     * Check if user is staff (admin, web_admin or officer).
      * @return bool
      */
     public function isStaff(): bool
     {
-        return in_array($this->role, [self::ROLE_WEB_ADMIN, self::ROLE_OFFICER]);
+        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_WEB_ADMIN, self::ROLE_OFFICER]);
     }
 
     /* -----------------------------------------------------------------

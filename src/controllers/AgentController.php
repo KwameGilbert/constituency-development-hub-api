@@ -326,6 +326,193 @@ class AgentController
     }
 
     /**
+     * Submit a new issue report (for agents)
+     * POST /api/agent/issues
+     */
+    public function submitIssue(Request $request, Response $response): Response
+    {
+        try {
+            $user = $request->getAttribute('user');
+            $agent = Agent::findByUserId($user->id);
+
+            if (!$agent) {
+                return ResponseHelper::error($response, 'Agent profile not found', 404);
+            }
+
+            if (!$agent->can_submit_reports) {
+                return ResponseHelper::error($response, 'You do not have permission to submit reports', 403);
+            }
+
+            $body = $request->getParsedBody();
+            
+            // Validate required fields
+            $required = ['title', 'description', 'category', 'priority', 'location'];
+            foreach ($required as $field) {
+                if (empty($body[$field])) {
+                    return ResponseHelper::error($response, "Field '{$field}' is required", 400);
+                }
+            }
+
+            // Create the issue report
+            $issue = new \App\Models\IssueReport([
+                'title' => $body['title'],
+                'description' => $body['description'],
+                'category' => $body['category'],
+                'type' => $body['type'] ?? 'community',
+                'priority' => $body['priority'],
+                'location' => $body['location'],
+                'smaller_community' => $body['smaller_community'] ?? null,
+                'suburb' => $body['suburb'] ?? null,
+                'cottage' => $body['cottage'] ?? null,
+                'latitude' => $body['latitude'] ?? null,
+                'longitude' => $body['longitude'] ?? null,
+                'sector' => $body['sector'] ?? null,
+                'subsector' => $body['subsector'] ?? null,
+                'people_affected' => $body['people_affected'] ?? null,
+                'estimated_budget' => $body['estimated_budget'] ?? null,
+                'additional_notes' => $body['additional_notes'] ?? null,
+                'reporter_name' => $body['reporter_name'] ?? null,
+                'reporter_phone' => $body['reporter_phone'] ?? null,
+                'reporter_email' => $body['reporter_email'] ?? null,
+                'reporter_gender' => $body['reporter_gender'] ?? null,
+                'reporter_address' => $body['reporter_address'] ?? null,
+                'submitted_by_agent_id' => $agent->id,
+                'status' => 'submitted',
+                'case_id' => 'ISS-' . strtoupper(uniqid()),
+            ]);
+
+            $issue->save();
+
+            // Increment agent's report count
+            $agent->increment('reports_submitted');
+
+            return ResponseHelper::success($response, 'Issue submitted successfully', [
+                'issue' => $issue->toPublicArray(),
+            ], 201);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to submit issue', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Get a single issue by ID (for agents to view their own issues)
+     * GET /api/agent/issues/{id}
+     */
+    public function getIssue(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $user = $request->getAttribute('user');
+            $agent = Agent::findByUserId($user->id);
+
+            if (!$agent) {
+                return ResponseHelper::error($response, 'Agent profile not found', 404);
+            }
+
+            $issueId = (int) $args['id'];
+            $issue = \App\Models\IssueReport::with(['assignedOfficer.user', 'assignedTaskForce'])
+                ->where('id', $issueId)
+                ->where('submitted_by_agent_id', $agent->id)
+                ->first();
+
+            if (!$issue) {
+                return ResponseHelper::error($response, 'Issue not found or access denied', 404);
+            }
+
+            return ResponseHelper::success($response, 'Issue fetched successfully', [
+                'issue' => $issue->toFullArray(),
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to fetch issue', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Update agent profile
+     * PUT /api/agent/profile
+     */
+    public function updateProfile(Request $request, Response $response): Response
+    {
+        try {
+            $user = $request->getAttribute('user');
+            $agent = Agent::with('user')->where('user_id', $user->id)->first();
+
+            if (!$agent) {
+                return ResponseHelper::error($response, 'Agent profile not found', 404);
+            }
+
+            $body = $request->getParsedBody();
+
+            // Update user fields
+            if (!empty($body['name'])) {
+                $agent->user->name = $body['name'];
+            }
+            if (!empty($body['email'])) {
+                // Check if email is already taken
+                $existingUser = User::where('email', $body['email'])
+                    ->where('id', '!=', $user->id)
+                    ->first();
+                if ($existingUser) {
+                    return ResponseHelper::error($response, 'Email is already in use', 400);
+                }
+                $agent->user->email = $body['email'];
+            }
+            if (!empty($body['phone'])) {
+                $agent->user->phone = $body['phone'];
+            }
+            
+            $agent->user->save();
+
+            // Update agent-specific fields
+            if (!empty($body['address'])) {
+                $agent->address = $body['address'];
+            }
+
+            $agent->save();
+
+            return ResponseHelper::success($response, 'Profile updated successfully', [
+                'agent' => $agent->fresh()->getFullProfile()
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to update profile', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Change agent password
+     * PUT /api/agent/password
+     */
+    public function changePassword(Request $request, Response $response): Response
+    {
+        try {
+            $user = $request->getAttribute('user');
+            $body = $request->getParsedBody();
+
+            // Validate required fields
+            if (empty($body['current_password']) || empty($body['new_password'])) {
+                return ResponseHelper::error($response, 'Current password and new password are required', 400);
+            }
+
+            if (strlen($body['new_password']) < 8) {
+                return ResponseHelper::error($response, 'New password must be at least 8 characters', 400);
+            }
+
+            // Verify current password
+            $dbUser = User::find($user->id);
+            if (!$dbUser || !password_verify($body['current_password'], $dbUser->password)) {
+                return ResponseHelper::error($response, 'Current password is incorrect', 400);
+            }
+
+            // Update password
+            $dbUser->password = password_hash($body['new_password'], PASSWORD_DEFAULT);
+            $dbUser->save();
+
+            return ResponseHelper::success($response, 'Password changed successfully');
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to change password', 500, $e->getMessage());
+        }
+    }
+
+    /**
      * Generate random password
      */
     private function generatePassword(int $length = 12): string
@@ -334,3 +521,4 @@ class AgentController
         return substr(str_shuffle($chars), 0, $length);
     }
 }
+

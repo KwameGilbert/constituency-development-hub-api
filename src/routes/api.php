@@ -26,6 +26,8 @@ return function ($app): void {
 
         // Role-specific dashboard routes (more specific first)
         '/v1/officer/dashboard' => ROUTE . 'v1/DashboardRoute.php',
+        '/v1/officer/issues' => ROUTE . 'v1/IssueReportRoute.php',
+        '/v1/officer/reports' => ROUTE . 'v1/OfficerReportsRoute.php',
         '/v1/officer' => ROUTE . 'v1/OfficerRoute.php',
         '/v1/agent/dashboard' => ROUTE . 'v1/DashboardRoute.php',
         '/v1/agent' => ROUTE . 'v1/AgentRoute.php',
@@ -52,10 +54,13 @@ return function ($app): void {
         '/v1/admin/task-force' => ROUTE . 'v1/TaskForceRoute.php',
         '/v1/admin/locations' => ROUTE . 'v1/LocationRoute.php',
         '/v1/admin/youth-programs' => ROUTE . 'v1/YouthProgramRoute.php',
+        '/v1/admin/youth-records' => ROUTE . 'v1/YouthRecordRoute.php',
         '/v1/admin/notifications' => ROUTE . 'v1/NotificationRoute.php',
+        '/v1/admin/audit-logs' => ROUTE . 'v1/AuditLogRoute.php',
 
         // New Dashboard Feature Routes
         '/v1/announcements' => ROUTE . 'v1/AnnouncementRoute.php',
+        '/v1/admin/announcements' => ROUTE . 'v1/AnnouncementRoute.php',
         '/v1/jobs' => ROUTE . 'v1/EmploymentJobRoute.php',
         '/v1/ideas' => ROUTE . 'v1/CommunityIdeaRoute.php',
         '/v1/youth-programs' => ROUTE . 'v1/YouthProgramRoute.php',

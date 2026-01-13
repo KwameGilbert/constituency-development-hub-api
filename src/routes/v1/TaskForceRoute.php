@@ -20,12 +20,27 @@ return function (App $app) {
 
     // Task Force dashboard routes (require task_force role)
     $app->group('/v1/task-force', function ($group) use ($controller) {
+        // Dashboard
+        $group->get('/dashboard', [$controller, 'dashboard']);
+        
+        // Team members
+        $group->get('/team', [$controller, 'team']);
+        
         // Profile
         $group->get('/profile', [$controller, 'profile']);
         
-        // Assigned issues
+        // Assigned issues (My Assignments)
         $group->get('/issues', [$controller, 'myIssues']);
         
+        // All Task Force Issues (Pool)
+        $group->get('/all', [$controller, 'issues']);
+
+        // Reports
+        $group->get('/reports', [$controller, 'reports']);
+        
+        // Single issue details
+        $group->get('/issues/{id}', [$controller, 'getIssue']);
+
         // Assessment workflow
         $group->post('/issues/{id}/start-assessment', [$controller, 'startAssessment']);
         $group->post('/issues/{id}/assessment', [$controller, 'submitAssessment']);
@@ -33,7 +48,7 @@ return function (App $app) {
         // Resolution workflow
         $group->post('/issues/{id}/start-resolution', [$controller, 'startResolution']);
         $group->post('/issues/{id}/resolution', [$controller, 'submitResolution']);
-    })->add(new RoleMiddleware(['task_force']))->add($authMiddleware);
+    })->add(new RoleMiddleware(['task_force', 'web_admin']))->add($authMiddleware);
 
     // Admin routes (require web_admin role)
     $app->group('/v1/admin/task-force', function ($group) use ($controller) {

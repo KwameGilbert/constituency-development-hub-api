@@ -21,7 +21,11 @@ return function (App $app) {
     // Agent dashboard routes (require agent role)
     $app->group('/v1/agent', function ($group) use ($controller) {
         $group->get('/profile', [$controller, 'profile']);
+        $group->put('/profile', [$controller, 'updateProfile']);
+        $group->put('/password', [$controller, 'changePassword']);
         $group->get('/my-reports', [$controller, 'myReports']);
+        $group->post('/issues', [$controller, 'submitIssue']);
+        $group->get('/issues/{id}', [$controller, 'getIssue']);
     })->add(new RoleMiddleware(['agent']))->add($authMiddleware);
 
     // Admin routes (require web_admin or officer role)

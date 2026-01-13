@@ -35,48 +35,60 @@ class ProfileController
     }
 
     /**
-     * Get current user profile
-     * GET /v1/profile
-     */
-    public function show(Request $request, Response $response): Response
-    {
-        try {
-            $requestUser = $request->getAttribute('user');
-            $user = User::find($requestUser->id);
-
-            if (!$user) {
-                return ResponseHelper::error($response, 'User not found', 404);
-            }
-
-            // Get full profile with role-specific data
-            $profile = $user->getFullProfile();
-
-            // Add preferences (stored as JSON in preferences column if exists)
-            $preferences = [
-                'email_notifications' => true,
-                'sms_notifications' => false,
-                'language' => 'en',
-                'timezone' => 'Africa/Accra'
-            ];
-
-            // If user has preferences stored, decode them
-            if (!empty($user->preferences)) {
-                $storedPrefs = json_decode($user->preferences, true);
-                if (is_array($storedPrefs)) {
-                    $preferences = array_merge($preferences, $storedPrefs);
-                }
-            }
-
-            $profile['preferences'] = $preferences;
-
-            return ResponseHelper::success($response, 'Profile retrieved successfully', [
-                'user' => $profile
-            ]);
-        } catch (Exception $e) {
-            return ResponseHelper::error($response, 'Failed to retrieve profile', 500, $e->getMessage());
+ * Get current user profile
+ * GET /v1/profile
+ */
+public function show(Request $request, Response $response): Response
+{
+    try {
+        $requestUser = $request->getAttribute('user');
+        
+        // Handle both object and array formats
+        $userId = null;
+        if (is_object($requestUser) && isset($requestUser->id)) {
+            $userId = (int) $requestUser->id;
+        } elseif (is_array($requestUser) && isset($requestUser['id'])) {
+            $userId = (int) $requestUser['id'];
         }
-    }
 
+        if (!$userId) {
+            return ResponseHelper::error($response, 'User ID not found in request', 401);
+        }
+
+        $user = User::find($userId);
+
+        if (!$user) {
+            return ResponseHelper::error($response, 'User not found', 404);
+        }
+
+        // Get full profile with role-specific data
+        $profile = $user->getFullProfile();
+
+        // Add preferences (stored as JSON in preferences column if exists)
+        $preferences = [
+            'email_notifications' => true,
+            'sms_notifications' => false,
+            'language' => 'en',
+            'timezone' => 'Africa/Accra'
+        ];
+
+        // If user has preferences stored, decode them
+        if (!empty($user->preferences)) {
+            $storedPrefs = json_decode($user->preferences, true);
+            if (is_array($storedPrefs)) {
+                $preferences = array_merge($preferences, $storedPrefs);
+            }
+        }
+
+        $profile['preferences'] = $preferences;
+
+        return ResponseHelper::success($response, 'Profile retrieved successfully', [
+            'user' => $profile
+        ]);
+    } catch (Exception $e) {
+        return ResponseHelper::error($response, 'Failed to retrieve profile', 500, $e->getMessage());
+    }
+}
     /**
      * Update profile
      * PUT /v1/profile
@@ -85,7 +97,8 @@ class ProfileController
     {
         try {
             $requestUser = $request->getAttribute('user');
-            $user = User::find($requestUser->id);
+            $userId = is_object($requestUser) ? (int) $requestUser->id : (int) ($requestUser['id'] ?? 0);
+            $user = User::find($userId);
 
             if (!$user) {
                 return ResponseHelper::error($response, 'User not found', 404);
@@ -141,7 +154,8 @@ class ProfileController
     {
         try {
             $requestUser = $request->getAttribute('user');
-            $user = User::find($requestUser->id);
+            $userId = is_object($requestUser) ? (int) $requestUser->id : (int) ($requestUser['id'] ?? 0);
+            $user = User::find($userId);
 
             if (!$user) {
                 return ResponseHelper::error($response, 'User not found', 404);
@@ -203,7 +217,8 @@ class ProfileController
     {
         try {
             $requestUser = $request->getAttribute('user');
-            $user = User::find($requestUser->id);
+            $userId = is_object($requestUser) ? (int) $requestUser->id : (int) ($requestUser['id'] ?? 0);
+            $user = User::find($userId);
 
             if (!$user) {
                 return ResponseHelper::error($response, 'User not found', 404);
@@ -260,13 +275,14 @@ class ProfileController
     {
         try {
             $requestUser = $request->getAttribute('user');
+            $userId = is_object($requestUser) ? (int) $requestUser->id : (int) ($requestUser['id'] ?? 0);
             $queryParams = $request->getQueryParams();
 
             $page = (int)($queryParams['page'] ?? 1);
             $limit = min((int)($queryParams['limit'] ?? 20), 100);
 
             // Get user's audit logs
-            $query = AuditLog::where('user_id', $requestUser->id)
+            $query = AuditLog::where('user_id', $userId)
                 ->orderBy('created_at', 'desc');
 
             $total = $query->count();

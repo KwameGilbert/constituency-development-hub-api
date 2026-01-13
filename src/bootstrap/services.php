@@ -37,6 +37,7 @@ use App\Controllers\NewsletterController;
 use App\Controllers\AnnouncementController;
 use App\Controllers\EmploymentJobController;
 use App\Controllers\CommunityIdeaController;
+use App\Controllers\OfficerReportsController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Middleware\JsonBodyParserMiddleware;
@@ -215,6 +216,10 @@ return function ($container) {
 
     $container->set(CommunityIdeaController::class, function () {
         return new CommunityIdeaController();
+    });
+
+    $container->set(OfficerReportsController::class, function () {
+        return new OfficerReportsController();
     });
     
     // ==================== MIDDLEWARES ====================

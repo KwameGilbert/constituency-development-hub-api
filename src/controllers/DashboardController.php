@@ -10,6 +10,9 @@ use App\Models\Officer;
 use App\Models\TaskForce;
 use App\Models\IssueReport;
 use App\Models\Project;
+use App\Models\BlogPost;
+use App\Models\ConstituencyEvent;
+use App\Models\HeroSlide;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -73,6 +76,14 @@ class DashboardController
                 'on_hold' => Project::where('status', 'on_hold')->count(),
             ];
 
+            // Content Stats (Blog, Events, Carousel)
+            $contentStats = [
+                'blog_posts' => BlogPost::count(),
+                'events' => ConstituencyEvent::count(),
+                'upcoming_events' => ConstituencyEvent::upcoming()->count(),
+                'carousel_items' => HeroSlide::count(),
+            ];
+
             // Recent activity stats (last 30 days)
             $thirtyDaysAgo = now()->subDays(30);
             $recentIssues = IssueReport::where('created_at', '>=', $thirtyDaysAgo)->count();
@@ -89,6 +100,7 @@ class DashboardController
                 'users_by_role' => $usersByRole,
                 'issues' => $issuesByStatus,
                 'projects' => $projectsByStatus,
+                'content_stats' => $contentStats,
                 'recent_activity' => [
                     'new_issues_30_days' => $recentIssues,
                     'new_projects_30_days' => $recentProjects,

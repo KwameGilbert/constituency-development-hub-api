@@ -281,15 +281,24 @@ class AuthController
         try {
             // User data is added by AuthMiddleware
             $userData = $request->getAttribute('user');
+            error_log('AuthController::me - User Data Attribute: ' . json_encode($userData));
 
             if (!$userData) {
+                error_log('AuthController::me - User data not found in request attribute');
                 return ResponseHelper::error($response, 'User not authenticated', 401);
+            }
+
+            if (!isset($userData->id)) {
+                error_log('AuthController::me - No ID in user data attribute');
+            } else {
+                error_log('AuthController::me - Searching for User ID: ' . $userData->id);
             }
 
             // Fetch fresh user data from database
             $user = User::find($userData->id);
 
             if (!$user) {
+                error_log('AuthController::me - User::find returned null for ID: ' . ($userData->id ?? 'null'));
                 return ResponseHelper::error($response, 'User not found', 404);
             }
 

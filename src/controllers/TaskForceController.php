@@ -15,6 +15,8 @@ use App\Services\UploadService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\UploadedFileInterface;
+use Illuminate\Database\Capsule\Manager as DB;
+use Carbon\Carbon;
 use Exception;
 
 /**
@@ -286,6 +288,163 @@ class TaskForceController
      */
 
     /**
+     * Get dashboard statistics
+     * GET /api/task-force/dashboard
+     */
+    public function dashboard(Request $request, Response $response): Response
+    {
+        try {
+            $user = $request->getAttribute('user');
+            $userId = is_object($user) ? (int) $user->id : (int) ($user['id'] ?? 0);
+
+            // Get task force profile
+            $taskForce = TaskForce::where('user_id', $userId)->first();
+
+            // Issues assigned to task force
+            $pendingAssessment = IssueReport::where('status', IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE)->count();
+            $inProgress = IssueReport::where('status', IssueReport::STATUS_ASSESSMENT_IN_PROGRESS)->count();
+            $assessmentSubmitted = IssueReport::where('status', IssueReport::STATUS_ASSESSMENT_SUBMITTED)->count();
+            $resolutionInProgress = IssueReport::where('status', IssueReport::STATUS_RESOLUTION_IN_PROGRESS)->count();
+            $resolved = IssueReport::whereIn('status', [
+                IssueReport::STATUS_RESOLVED,
+                IssueReport::STATUS_CLOSED
+            ])->count();
+
+            // My assignments (if task force member)
+            $myPending = 0;
+            $myInProgress = 0;
+            $myCompleted = 0;
+            if ($taskForce) {
+                $myPending = IssueReport::where('assigned_task_force_id', $taskForce->id)
+                    ->where('status', IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE)
+                    ->count();
+                $myInProgress = IssueReport::where('assigned_task_force_id', $taskForce->id)
+                    ->whereIn('status', [
+                        IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                        IssueReport::STATUS_RESOLUTION_IN_PROGRESS
+                    ])
+                    ->count();
+                $myCompleted = IssueReport::where('assigned_task_force_id', $taskForce->id)
+                    ->whereIn('status', [
+                        IssueReport::STATUS_RESOLVED,
+                        IssueReport::STATUS_CLOSED
+                    ])
+                    ->count();
+            }
+
+            // Team stats
+            $totalTeamMembers = TaskForce::count();
+            $activeMembers = TaskForce::whereHas('user', function($query) {
+                $query->where('status', 'active');
+            })->count();
+
+            // Priority breakdown
+            $urgentIssues = IssueReport::where('priority', 'urgent')
+                ->whereNotIn('status', [IssueReport::STATUS_RESOLVED, IssueReport::STATUS_CLOSED])
+                ->count();
+            $highPriorityIssues = IssueReport::where('priority', 'high')
+                ->whereNotIn('status', [IssueReport::STATUS_RESOLVED, IssueReport::STATUS_CLOSED])
+                ->count();
+
+            return ResponseHelper::success($response, 'Dashboard stats fetched successfully', [
+                'overview' => [
+                    'pending_assessment' => $pendingAssessment,
+                    'assessment_in_progress' => $inProgress,
+                    'assessment_submitted' => $assessmentSubmitted,
+                    'resolution_in_progress' => $resolutionInProgress,
+                    'resolved' => $resolved,
+                ],
+                'my_assignments' => [
+                    'pending' => $myPending,
+                    'in_progress' => $myInProgress,
+                    'completed' => $myCompleted,
+                ],
+                'team' => [
+                    'total_members' => $totalTeamMembers,
+                    'active_members' => $activeMembers,
+                ],
+                'priority' => [
+                    'urgent' => $urgentIssues,
+                    'high' => $highPriorityIssues,
+                ],
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to fetch dashboard stats', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Get team members with performance stats
+     * GET /api/task-force/team
+     */
+    public function team(Request $request, Response $response): Response
+    {
+        try {
+            $params = $request->getQueryParams();
+            $limit = isset($params['limit']) ? (int)$params['limit'] : 20;
+            $specialization = $params['specialization'] ?? null;
+
+            $query = TaskForce::with('user');
+
+            if ($specialization) {
+                $query->where('specialization', $specialization);
+            }
+
+            $members = $query->limit($limit)->get()->map(function ($member) {
+                // Count assigned issues
+                $assignedCount = IssueReport::where('assigned_task_force_id', $member->id)->count();
+                $completedCount = IssueReport::where('assigned_task_force_id', $member->id)
+                    ->whereIn('status', [IssueReport::STATUS_RESOLVED, IssueReport::STATUS_CLOSED])
+                    ->count();
+                $activeCount = IssueReport::where('assigned_task_force_id', $member->id)
+                    ->whereNotIn('status', [IssueReport::STATUS_RESOLVED, IssueReport::STATUS_CLOSED])
+                    ->count();
+
+                $completionRate = $assignedCount > 0 ? round(($completedCount / $assignedCount) * 100, 1) : 0;
+
+                return [
+                    'id' => $member->id,
+                    'name' => $member->user->name ?? 'Unknown',
+                    'email' => $member->user->email ?? null,
+                    'phone' => $member->user->phone ?? null,
+                    'status' => $member->user->status ?? 'inactive',
+                    'employee_id' => $member->employee_id,
+                    'title' => $member->title,
+                    'specialization' => $member->specialization,
+                    'skills' => $member->skills,
+                    'id_verified' => $member->id_verified,
+                    'assessments_completed' => $member->assessments_completed,
+                    'resolutions_completed' => $member->resolutions_completed,
+                    'assigned_count' => $assignedCount,
+                    'completed_count' => $completedCount,
+                    'active_count' => $activeCount,
+                    'completion_rate' => $completionRate,
+                    'last_active_at' => $member->last_active_at?->toDateTimeString(),
+                ];
+            });
+
+            // Get specialization options
+            $specializations = [
+                ['value' => TaskForce::SPEC_INFRASTRUCTURE, 'label' => 'Infrastructure'],
+                ['value' => TaskForce::SPEC_HEALTH, 'label' => 'Health'],
+                ['value' => TaskForce::SPEC_EDUCATION, 'label' => 'Education'],
+                ['value' => TaskForce::SPEC_WATER_SANITATION, 'label' => 'Water & Sanitation'],
+                ['value' => TaskForce::SPEC_ELECTRICITY, 'label' => 'Electricity'],
+                ['value' => TaskForce::SPEC_ROADS, 'label' => 'Roads'],
+                ['value' => TaskForce::SPEC_GENERAL, 'label' => 'General'],
+            ];
+
+            return ResponseHelper::success($response, 'Team members fetched successfully', [
+                'members' => $members,
+                'total' => TaskForce::count(),
+                'specializations' => $specializations,
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to fetch team members', 500, $e->getMessage());
+        }
+    }
+
+    /**
      * Get task force member's profile
      * GET /api/task-force/profile
      */
@@ -293,10 +452,37 @@ class TaskForceController
     {
         try {
             $user = $request->getAttribute('user');
-            $member = TaskForce::with('user')->where('user_id', $user->id)->first();
+            $userId = is_object($user) ? (int) $user->id : (int) ($user['id'] ?? 0);
+            
+            $dbUser = User::find($userId);
+            if (!$dbUser) {
+                return ResponseHelper::error($response, 'User not found', 404);
+            }
+
+            $member = TaskForce::with('user')->where('user_id', $userId)->first();
 
             if (!$member) {
-                return ResponseHelper::error($response, 'Task force profile not found', 404);
+                // If checking as admin/officer without task force profile, return basic user info
+                return ResponseHelper::success($response, 'Profile fetched successfully', [
+                    'member' => [
+                        'id' => $dbUser->id,
+                        'name' => $dbUser->name,
+                        'email' => $dbUser->email,
+                        'phone' => $dbUser->phone,
+                        'status' => 'active',
+                        'role' => $dbUser->role,
+                        'assessments_completed' => 0,
+                        'resolutions_completed' => 0,
+                        'assigned_count' => 0,
+                        'completion_rate' => 0,
+                        'id_verified' => true,
+                        // Add other required fields with defaults
+                        'specialization' => null,
+                        'employee_id' => null,
+                        'title' => null,
+                        'skills' => []
+                    ]
+                ]);
             }
 
             return ResponseHelper::success($response, 'Profile fetched successfully', [
@@ -335,6 +521,88 @@ class TaskForceController
             ]);
         } catch (Exception $e) {
             return ResponseHelper::error($response, 'Failed to fetch assigned issues', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all task force issues (Pool)
+     * GET /api/task-force/all
+     */
+    public function issues(Request $request, Response $response): Response
+    {
+        try {
+            // Get filter params
+            $params = $request->getQueryParams();
+            $status = $params['status'] ?? null;
+            $priority = $params['priority'] ?? null;
+            $category = $params['category'] ?? null;
+            $limit = isset($params['limit']) ? (int) $params['limit'] : 20;
+            $page = isset($params['page']) ? (int) $params['page'] : 1;
+
+            // Base query - issues that are assigned to task force but not yet resolved?
+            // Actually, "Pool" implies issues waiting for pickup.
+            // But specific status filter 'assigned_to_task_force' is passed by frontend.
+            $query = IssueReport::with(['submittedByAgent.user', 'assignedTaskForce.user']);
+
+            if ($status) {
+                $query->where('status', $status);
+            } else {
+                // Default: show relevant issues
+                 $query->whereIn('status', [
+                    IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE,
+                    IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                    IssueReport::STATUS_RESOURCES_ALLOCATED,
+                    IssueReport::STATUS_RESOLUTION_IN_PROGRESS,
+                ]);
+            }
+
+            if ($priority) {
+                $query->where('priority', $priority);
+            }
+
+            if ($category) {
+                $query->where('category', $category);
+            }
+
+            $total = $query->count();
+            
+            $issues = $query->orderBy('created_at', 'desc')
+                ->skip(($page - 1) * $limit)
+                ->take($limit)
+                ->get();
+
+            return ResponseHelper::success($response, 'Issues fetched successfully', [
+                'issues' => $issues->map(fn($i) => $i->toFullArray())->toArray(),
+                'pagination' => [
+                    'total' => $total,
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total_pages' => ceil($total / $limit)
+                ]
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to fetch issues', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Get single issue details
+     * GET /api/task-force/issues/{id}
+     */
+    public function getIssue(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $issue = IssueReport::find($args['id']);
+
+            if (!$issue) {
+                return ResponseHelper::error($response, 'Issue not found', 404);
+            }
+
+            return ResponseHelper::success($response, 'Issue fetched successfully', [
+                'issue' => $issue->toFullArray()
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to fetch issue', 500, $e->getMessage());
         }
     }
 
@@ -620,7 +888,91 @@ class TaskForceController
     }
 
     /**
-     * Generate random password
+     * Get reports/analytics for task force
+     * GET /api/task-force/reports
+     */
+    public function reports(Request $request, Response $response): Response
+    {
+        try {
+            // Status distribution
+            $statusCounts = IssueReport::select('status', DB::raw('COUNT(*) as count'))
+                ->groupBy('status')
+                ->get()
+                ->pluck('count', 'status')
+                ->toArray();
+
+            // Priority distribution
+            $priorityCounts = IssueReport::select('priority', DB::raw('COUNT(*) as count'))
+                ->whereNotNull('priority')
+                ->groupBy('priority')
+                ->get()
+                ->pluck('count', 'priority')
+                ->toArray();
+
+            // Category distribution
+            $categoryCounts = IssueReport::select('category', DB::raw('COUNT(*) as count'))
+                ->whereNotNull('category')
+                ->groupBy('category')
+                ->get()
+                ->map(fn($item) => [
+                    'name' => $item->category,
+                    'count' => $item->count
+                ])
+                ->toArray();
+
+            // Monthly trends (last 6 months)
+            $trends = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $startDate = Carbon::now()->subMonths($i)->startOfMonth();
+                $endDate = Carbon::now()->subMonths($i)->endOfMonth();
+                
+                $submitted = IssueReport::whereBetween('created_at', [$startDate, $endDate])->count();
+                $resolved = IssueReport::whereBetween('resolved_at', [$startDate, $endDate])->count();
+                
+                $trends[] = [
+                    'month' => $startDate->format('M Y'),
+                    'submitted' => $submitted,
+                    'resolved' => $resolved,
+                ];
+            }
+
+            // Top performers
+            $topPerformers = TaskForce::with('user')
+                ->orderByDesc('resolutions_completed')
+                ->limit(5)
+                ->get()
+                ->map(fn($m) => [
+                    'name' => $m->user?->name ?? 'Unknown',
+                    'assessments' => $m->assessments_completed,
+                    'resolutions' => $m->resolutions_completed,
+                ]);
+
+            // Average resolution time
+            $avgResolutionDays = IssueReport::whereNotNull('resolved_at')
+                ->selectRaw('AVG(TIMESTAMPDIFF(DAY, created_at, resolved_at)) as avg_days')
+                ->first()
+                ->avg_days ?? 0;
+
+            return ResponseHelper::success($response, 'Reports fetched successfully', [
+                'status_distribution' => $statusCounts,
+                'priority_distribution' => $priorityCounts,
+                'category_distribution' => $categoryCounts,
+                'monthly_trends' => $trends,
+                'top_performers' => $topPerformers,
+                'avg_resolution_days' => round((float)$avgResolutionDays, 1),
+                'total_issues' => IssueReport::count(),
+                'resolved_issues' => IssueReport::whereIn('status', [
+                    IssueReport::STATUS_RESOLVED,
+                    IssueReport::STATUS_CLOSED
+                ])->count(),
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to fetch reports', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate random passphraseld
      */
     private function generatePassword(int $length = 12): string
     {

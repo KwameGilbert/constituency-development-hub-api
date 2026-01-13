@@ -29,6 +29,7 @@ return function (App $app) {
 
     // Officer routes (require officer role)
     $app->group('/v1/officer/issues', function ($group) use ($controller) {
+        $group->post('', [$controller, 'officerSubmit']);
         $group->put('/{id}/forward', [$controller, 'officerForward']);
     })->add(new RoleMiddleware(['officer']))->add($authMiddleware);
 

@@ -97,7 +97,7 @@ class LocationController
     {
         try {
             $data = $request->getParsedBody() ?? [];
-            $user = $this->authService->getAuthenticatedUser($request);
+            $user = $request->getAttribute('user');
 
             // Validation
             $errors = $this->validateLocationData($data);
@@ -126,15 +126,20 @@ class LocationController
             $location->status = $data['status'] ?? Location::STATUS_ACTIVE;
             $location->save();
 
-            // Log the action
-            AuditLog::logAction(
-                $user->id ?? 0,
-                'create_location',
-                'locations',
-                $location->id,
-                null,
-                $location->toArray()
-            );
+            // Log the action (non-blocking)
+            try {
+                AuditLog::logAction(
+                    $user->id ?? 0,
+                    'create_location',
+                    'locations',
+                    $location->id,
+                    null,
+                    $location->toArray()
+                );
+            } catch (Exception $e) {
+                // Log audit failure but don't block the operation
+                error_log('Audit log failed: ' . $e->getMessage());
+            }
 
             return ResponseHelper::success($response, 'Location created successfully', [
                 'location' => $location->toApiResponse()
@@ -154,7 +159,7 @@ class LocationController
         try {
             $id = (int) $args['id'];
             $data = $request->getParsedBody() ?? [];
-            $user = $this->authService->getAuthenticatedUser($request);
+            $user = $request->getAttribute('user');
 
             $location = Location::find($id);
             if (!$location) {
@@ -199,15 +204,20 @@ class LocationController
             
             $location->save();
 
-            // Log the action
-            AuditLog::logAction(
-                $user->id ?? 0,
-                'update_location',
-                'locations',
-                $location->id,
-                $oldData,
-                $location->toArray()
-            );
+            // Log the action (non-blocking)
+            try {
+                AuditLog::logAction(
+                    $user->id ?? 0,
+                    'update_location',
+                    'locations',
+                    $location->id,
+                    $oldData,
+                    $location->toArray()
+                );
+            } catch (Exception $e) {
+                // Log audit failure but don't block the operation
+                error_log('Audit log failed: ' . $e->getMessage());
+            }
 
             return ResponseHelper::success($response, 'Location updated successfully', [
                 'location' => $location->toApiResponse()
@@ -226,7 +236,7 @@ class LocationController
     {
         try {
             $id = (int) $args['id'];
-            $user = $this->authService->getAuthenticatedUser($request);
+            $user = $request->getAttribute('user');
 
             $location = Location::find($id);
             if (!$location) {
@@ -238,23 +248,23 @@ class LocationController
                 return ResponseHelper::error($response, 'Cannot delete location with child locations. Delete or reassign children first.', 400);
             }
 
-            // Check if location has issues
-            if ($location->issues()->count() > 0) {
-                return ResponseHelper::error($response, 'Cannot delete location with associated issues. Reassign issues first.', 400);
-            }
-
             $oldData = $location->toArray();
             $location->delete();
 
-            // Log the action
-            AuditLog::logAction(
-                $user->id ?? 0,
-                'delete_location',
-                'locations',
-                $id,
-                $oldData,
-                null
-            );
+            // Log the action (non-blocking)
+            try {
+                AuditLog::logAction(
+                    $user->id ?? 0,
+                    'delete_location',
+                    'locations',
+                    $id,
+                    $oldData,
+                    null
+                );
+            } catch (Exception $e) {
+                // Log audit failure but don't block the operation
+                error_log('Audit log failed: ' . $e->getMessage());
+            }
 
             return ResponseHelper::success($response, 'Location deleted successfully');
 
@@ -288,6 +298,44 @@ class LocationController
 
         } catch (Exception $e) {
             return ResponseHelper::error($response, 'Failed to retrieve location statistics: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get location dashboard statistics
+     * GET /v1/admin/locations/dashboard-stats
+     */
+    public function dashboardStats(Request $request, Response $response): Response
+    {
+        try {
+            // Count by type
+            $typeCounts = [];
+            foreach (Location::VALID_TYPES as $type) {
+                $typeCounts[$type] = Location::where('type', $type)->count();
+            }
+
+            // Recent locations (last 5)
+            $recentLocations = Location::orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(function ($location) {
+                    return [
+                        'id' => $location->id,
+                        'name' => $location->name,
+                        'type' => $location->type,
+                        'created_at' => $location->created_at->toIso8601String(),
+                        'formatted_date' => $location->created_at->format('M d, Y')
+                    ];
+                });
+
+            return ResponseHelper::success($response, 'Location dashboard stats retrieved successfully', [
+                'counts' => $typeCounts,
+                'total' => Location::count(),
+                'recent_locations' => $recentLocations
+            ]);
+
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to retrieve dashboard stats: ' . $e->getMessage(), 500);
         }
     }
 

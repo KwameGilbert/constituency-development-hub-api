@@ -59,6 +59,9 @@ return function (App $app) {
         // GET /v1/admin/data/recent-issues - Get recent issues data
         $group->get('/recent-issues', [$controller, 'getRecentIssues']);
 
+        // POST /v1/admin/data/reports/generate - Generate custom report
+        $group->post('/reports/generate', [$controller, 'generateReport']);
+
         // GET /v1/admin/data/all - Get all admin dashboard data combined
         $group->get('/all', [$controller, 'getAllData']);
     })->add(new RoleMiddleware(['admin', 'web_admin']))->add($authMiddleware);

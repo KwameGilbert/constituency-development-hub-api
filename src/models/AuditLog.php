@@ -110,6 +110,39 @@ class AuditLog extends Model
     }
 
     /**
+     * Log a CRUD action (static helper for entity operations)
+     * 
+     * @param int $userId User performing the action
+     * @param string $action Action type (e.g., 'create_location', 'update_project')
+     * @param string $entityType Entity table/type name
+     * @param int|null $entityId Entity ID
+     * @param array|null $oldData Previous data (for updates/deletes)
+     * @param array|null $newData New data (for creates/updates)
+     * @return self
+     */
+    public static function logAction(
+        int $userId,
+        string $action,
+        string $entityType,
+        ?int $entityId = null,
+        ?array $oldData = null,
+        ?array $newData = null
+    ): self {
+        return static::create([
+            'user_id' => $userId,
+            'action' => $action,
+            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+            'metadata' => [
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'old_data' => $oldData,
+                'new_data' => $newData
+            ]
+        ]);
+    }
+
+    /**
      * Get recent failed login attempts for an IP
      */
     public static function recentFailedAttemptsFromIP(string $ipAddress, int $minutes = 15): int

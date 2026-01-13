@@ -138,6 +138,7 @@ class AnnouncementController
         try {
             $data = $request->getParsedBody();
             $user = $request->getAttribute('user');
+            error_log('Announcement store: User role is ' . $user->role);
 
             // Validate required fields
             if (empty($data['title']) || empty($data['content'])) {
@@ -147,7 +148,24 @@ class AnnouncementController
             // Get web admin ID
             $webAdmin = WebAdmin::findByUserId($user->id);
             if (!$webAdmin) {
-                return ResponseHelper::error($response, 'Unauthorized', 403);
+                // Auto-create WebAdmin profile if user has appropriate role
+                if (in_array($user->role, ['admin', 'super_admin', 'web_admin'])) {
+                    // Verify the user actually exists in the database
+                    $dbUser = \App\Models\User::find($user->id);
+                    if (!$dbUser) {
+                        error_log("Announcement store: User ID {$user->id} not found in database. Token may be stale.");
+                        return ResponseHelper::error($response, 'User not found. Please log out and log in again.', 401);
+                    }
+                    
+                    $webAdmin = WebAdmin::create([
+                        'user_id' => $user->id,
+                        'admin_level' => 'admin',
+                        'department' => 'General',
+                        'employee_id' => WebAdmin::generateEmployeeId(),
+                    ]);
+                } else {
+                    return ResponseHelper::error($response, 'Unauthorized - WebAdmin profile required', 403);
+                }
             }
 
             // Generate slug
@@ -200,7 +218,17 @@ class AnnouncementController
             // Get web admin ID
             $webAdmin = WebAdmin::findByUserId($user->id);
             if (!$webAdmin) {
-                return ResponseHelper::error($response, 'Unauthorized', 403);
+                // Auto-create WebAdmin profile if user has appropriate role
+                if (in_array($user->role, ['admin', 'super_admin', 'web_admin'])) {
+                    $webAdmin = WebAdmin::create([
+                        'user_id' => $user->id,
+                        'admin_level' => 'admin',
+                        'department' => 'General',
+                        'employee_id' => WebAdmin::generateEmployeeId(),
+                    ]);
+                } else {
+                    return ResponseHelper::error($response, 'Unauthorized - WebAdmin profile required', 403);
+                }
             }
 
             $updateData = ['updated_by' => $webAdmin->id];

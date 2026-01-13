@@ -23,6 +23,9 @@ return function (App $app): void {
         // GET /v1/admin/locations/types - Get location types summary (must be before /{id})
         $group->get('/types', [$controller, 'types']);
 
+        // GET /v1/admin/locations/dashboard-stats - Get dashboard statistics (must be before /{id})
+        $group->get('/dashboard-stats', [$controller, 'dashboardStats']);
+
         // GET /v1/admin/locations - List all locations with filtering and pagination
         $group->get('', [$controller, 'index']);
 

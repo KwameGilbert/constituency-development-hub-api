@@ -475,6 +475,101 @@ class IssueReportController
         }
     }
 
+    /**
+     * Officer submit issue report
+     * POST /api/officer/issues
+     */
+    public function officerSubmit(Request $request, Response $response): Response
+    {
+        try {
+            $data = $request->getParsedBody() ?? [];
+            $uploadedFiles = $request->getUploadedFiles();
+            $user = $request->getAttribute('user');
+
+            // Get officer profile
+            $officer = \App\Models\Officer::findByUserId($user->id);
+
+            if (!$officer) {
+                return ResponseHelper::error($response, 'Officer profile not found', 404);
+            }
+
+            // Validation
+            if (empty($data['title'])) {
+                return ResponseHelper::error($response, 'Title is required', 400);
+            }
+            if (empty($data['description'])) {
+                return ResponseHelper::error($response, 'Description is required', 400);
+            }
+            if (empty($data['location'])) {
+                return ResponseHelper::error($response, 'Location is required', 400);
+            }
+
+            // Handle images upload
+            $imagesJson = $data['images'] ?? null;
+            $imageFiles = $uploadedFiles['images'] ?? [];
+            if (!empty($imageFiles)) {
+                if (!is_array($imageFiles)) {
+                    $imageFiles = [$imageFiles];
+                }
+                try {
+                    $uploadedImages = $this->uploadService->uploadMultipleFiles($imageFiles, 'image', 'issues');
+                    if (!empty($uploadedImages)) {
+                        $imagesJson = json_encode($uploadedImages);
+                    }
+                } catch (Exception $e) {
+                    error_log('Issue images upload failed: ' . $e->getMessage());
+                }
+            }
+
+            // Enrich description with extra fields
+            $enrichedDescription = $data['description'];
+            $extras = [];
+            if (!empty($data['issue_type'])) $extras[] = "Issue Type: " . $data['issue_type'];
+            if (!empty($data['sector'])) $extras[] = "Sector: " . $data['sector'];
+            if (!empty($data['subsector'])) $extras[] = "Subsector: " . $data['subsector'];
+            if (!empty($data['people_affected'])) $extras[] = "People Affected: " . $data['people_affected'];
+            if (!empty($data['constituent_gender'])) $extras[] = "Gender: " . $data['constituent_gender'];
+            if (!empty($data['constituent_address'])) $extras[] = "Address: " . $data['constituent_address'];
+            if (!empty($data['notes'])) $extras[] = "Notes: " . $data['notes'];
+            
+            if (!empty($extras)) {
+                $enrichedDescription .= "\n\n-- Additional Details --\n" . implode("\n", $extras);
+            }
+
+            $report = IssueReport::create([
+                'case_id' => IssueReport::generateCaseId(),
+                'title' => $data['title'],
+                'description' => $enrichedDescription,
+                'category' => $data['category'] ?? null,
+                'location' => $data['location'],
+                'latitude' => $data['latitude'] ?? null,
+                'longitude' => $data['longitude'] ?? null,
+                'images' => $imagesJson,
+                'reporter_name' => $data['reporter_name'] ?? null,
+                'reporter_email' => $data['reporter_email'] ?? null,
+                'reporter_phone' => $data['reporter_phone'] ?? null,
+                'submitted_by_officer_id' => $officer->id,
+                'status' => IssueReport::STATUS_SUBMITTED,
+                'priority' => $data['priority'] ?? IssueReport::PRIORITY_MEDIUM,
+            ]);
+
+            // Log status
+            IssueReportStatusHistory::logChange(
+                $report->id,
+                $user->id,
+                null,
+                IssueReport::STATUS_SUBMITTED,
+                'Submitted by officer'
+            );
+
+            return ResponseHelper::success($response, 'Issue report submitted successfully', [
+                'report' => $report->toPublicArray()
+            ], 201);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to submit issue report', 500, $e->getMessage());
+        }
+    }
+
     /* -----------------------------------------------------------------
      |  Admin Workflow Methods
      | -----------------------------------------------------------------
