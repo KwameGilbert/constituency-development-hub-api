@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\EmploymentJob;
+use App\Models\JobApplicant;
 use App\Models\WebAdmin;
 use App\Helper\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -164,17 +165,15 @@ class EmploymentJobController
                 return ResponseHelper::error($response, 'Title, description, and location are required', 400);
             }
 
-            // Get web admin ID
+            // Get web admin ID if the user is a web_admin, otherwise allow admin users too
             $webAdmin = WebAdmin::findByUserId($user->id);
-            if (!$webAdmin) {
-                return ResponseHelper::error($response, 'Unauthorized', 403);
-            }
+            $createdBy = $webAdmin ? $webAdmin->id : null;
 
             // Generate slug
             $slug = EmploymentJob::generateSlug($data['title']);
 
             $job = EmploymentJob::create([
-                'created_by' => $webAdmin->id,
+                'created_by' => $createdBy,
                 'title' => $data['title'],
                 'slug' => $slug,
                 'description' => $data['description'],
@@ -226,13 +225,11 @@ class EmploymentJobController
                 return ResponseHelper::error($response, 'Job not found', 404);
             }
 
-            // Get web admin ID
+            // Get web admin ID if the user is a web_admin, otherwise allow admin users too
             $webAdmin = WebAdmin::findByUserId($user->id);
-            if (!$webAdmin) {
-                return ResponseHelper::error($response, 'Unauthorized', 403);
-            }
+            $updatedBy = $webAdmin ? $webAdmin->id : null;
 
-            $updateData = ['updated_by' => $webAdmin->id];
+            $updateData = ['updated_by' => $updatedBy];
 
             if (isset($data['title'])) {
                 $updateData['title'] = $data['title'];
@@ -341,6 +338,94 @@ class EmploymentJobController
             ]);
         } catch (Exception $e) {
             return ResponseHelper::error($response, 'Failed to close job', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Get applicants for a job
+     * GET /v1/jobs/{id}/applicants
+     */
+    public function getApplicants(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $jobId = (int) $args['id'];
+            $params = $request->getQueryParams();
+            $page = (int) ($params['page'] ?? 1);
+            $limit = (int) ($params['limit'] ?? 20);
+            $status = $params['status'] ?? null;
+
+            $job = EmploymentJob::find($jobId);
+            if (!$job) {
+                return ResponseHelper::error($response, 'Job not found', 404);
+            }
+
+            $query = JobApplicant::where('job_id', $jobId);
+
+            if ($status) {
+                $query->where('status', $status);
+            }
+
+            $total = $query->count();
+            $applicants = $query
+                ->orderBy('applied_at', 'desc')
+                ->offset(($page - 1) * $limit)
+                ->limit($limit)
+                ->get();
+
+            return ResponseHelper::success($response, 'Applicants retrieved', [
+                'applicants' => $applicants->map(fn($a) => $a->toArray()),
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => $total,
+                    'total_pages' => (int) ceil($total / $limit),
+                ],
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to retrieve applicants', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Update applicant status
+     * PUT /v1/jobs/{id}/applicants/{applicantId}
+     */
+    public function updateApplicantStatus(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $jobId = (int) $args['id'];
+            $applicantId = (int) $args['applicantId'];
+            $data = $request->getParsedBody();
+
+            $job = EmploymentJob::find($jobId);
+            if (!$job) {
+                return ResponseHelper::error($response, 'Job not found', 404);
+            }
+
+            $applicant = JobApplicant::where('id', $applicantId)
+                ->where('job_id', $jobId)
+                ->first();
+
+            if (!$applicant) {
+                return ResponseHelper::error($response, 'Applicant not found', 404);
+            }
+
+            if (empty($data['status'])) {
+                return ResponseHelper::error($response, 'Status is required', 400);
+            }
+
+            $validStatuses = JobApplicant::getValidStatuses();
+            if (!in_array($data['status'], $validStatuses)) {
+                return ResponseHelper::error($response, 'Invalid status. Valid statuses: ' . implode(', ', $validStatuses), 400);
+            }
+
+            $applicant->update(['status' => $data['status']]);
+
+            return ResponseHelper::success($response, 'Applicant status updated', [
+                'applicant' => $applicant->fresh()->toArray(),
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to update applicant status', 500, $e->getMessage());
         }
     }
 }

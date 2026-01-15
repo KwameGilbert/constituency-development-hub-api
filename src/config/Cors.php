@@ -10,10 +10,10 @@ return [
     // Allowed Origins
     // In production, set to specific domains: 'https://yourdomain.com,https://app.yourdomain.com'
     // In development, can use '*' for testing
-    'allowed_origins' => '*',
+    'allowed_origins' => 'http://localhost:3000',
     
     // Allowed Headers
-    'allowed_headers' => 'X-Requested-With, Content-Type, Accept, Origin, Authorization',
+    'allowed_headers' => 'X-Requested-With, Content-Type, Accept, Origin, Authorization, X-HTTP-Method-Override',
     
     // Allowed Methods
     'allowed_methods' => 'GET, POST, PUT, DELETE, PATCH, OPTIONS',

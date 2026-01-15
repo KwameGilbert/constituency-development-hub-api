@@ -42,7 +42,7 @@ return function (App $app) {
         $group->put('/{id}/status', [$controller, 'updateStatus']);
         $group->put('/{id}/assign', [$controller, 'assign']);
         $group->post('/{id}/comments', [$controller, 'addComment']);
-    })->add(new RoleMiddleware(['web_admin', 'officer']))->add($authMiddleware);
+    })->add(new RoleMiddleware(['web_admin', 'officer', 'task_force']))->add($authMiddleware);
 
     // Admin routes - Task Force Workflow (web_admin only)
     $app->group('/v1/admin/issues', function ($group) use ($controller) {

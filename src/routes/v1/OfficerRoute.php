@@ -30,6 +30,7 @@ return function (App $app) {
         $group->get('/{id}', [$controller, 'show']);
         $group->post('', [$controller, 'store']);
         $group->put('/{id}', [$controller, 'update']);
+        $group->post('/{id}', [$controller, 'update']); // For file uploads with _method=PUT
         $group->delete('/{id}', [$controller, 'destroy']);
     })->add(new RoleMiddleware(['web_admin']))->add($authMiddleware);
 };

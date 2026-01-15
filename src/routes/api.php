@@ -23,6 +23,7 @@ return function ($app): void {
         '/v1/contact' => ROUTE . 'v1/ContactInfoRoute.php',
         '/v1/newsletter' => ROUTE . 'v1/NewsletterRoute.php',
         '/v1/issues' => ROUTE . 'v1/IssueReportRoute.php',
+        '/v1/gallery' => ROUTE . 'v1/GalleryRoute.php',
 
         // Role-specific dashboard routes (more specific first)
         '/v1/officer/dashboard' => ROUTE . 'v1/DashboardRoute.php',
@@ -57,6 +58,7 @@ return function ($app): void {
         '/v1/admin/youth-records' => ROUTE . 'v1/YouthRecordRoute.php',
         '/v1/admin/notifications' => ROUTE . 'v1/NotificationRoute.php',
         '/v1/admin/audit-logs' => ROUTE . 'v1/AuditLogRoute.php',
+        '/v1/admin/gallery' => ROUTE . 'v1/GalleryRoute.php',
 
         // New Dashboard Feature Routes
         '/v1/announcements' => ROUTE . 'v1/AnnouncementRoute.php',

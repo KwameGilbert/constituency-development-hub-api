@@ -33,6 +33,7 @@ class CommunityIdeaVote extends Model
         'user_id',
         'voter_ip',
         'voter_email',
+        'type',
         'created_at',
     ];
 
@@ -70,49 +71,94 @@ class CommunityIdeaVote extends Model
     /**
      * Check if a user has already voted on an idea
      */
-    public static function hasUserVoted(int $ideaId, int $userId): bool
+    public static function getUserVote(int $ideaId, int $userId): ?CommunityIdeaVote
     {
         return static::where('idea_id', $ideaId)
             ->where('user_id', $userId)
-            ->exists();
+            ->first();
     }
 
     /**
      * Check if an IP has already voted on an idea
      */
-    public static function hasIpVoted(int $ideaId, string $ip): bool
+    public static function getIpVote(int $ideaId, string $ip): ?CommunityIdeaVote
     {
         return static::where('idea_id', $ideaId)
             ->where('voter_ip', $ip)
-            ->exists();
+            ->first();
     }
 
     /**
-     * Record a vote for an idea
+     * Record a vote for an idea (Toggle logic)
      */
-    public static function recordVote(int $ideaId, ?int $userId = null, ?string $ip = null, ?string $email = null): ?CommunityIdeaVote
+    public static function recordVote(int $ideaId, ?int $userId = null, ?string $ip = null, string $type = 'up', ?string $email = null): array
     {
-        // Check if already voted
-        if ($userId && static::hasUserVoted($ideaId, $userId)) {
-            return null;
+        $existingVote = null;
+
+        if ($userId) {
+            $existingVote = static::getUserVote($ideaId, $userId);
+        } elseif ($ip) {
+            $existingVote = static::getIpVote($ideaId, $ip);
+        } else {
+            return ['action' => 'error', 'message' => 'User or IP required'];
         }
 
-        if ($ip && !$userId && static::hasIpVoted($ideaId, $ip)) {
-            return null;
+        $idea = CommunityIdea::find($ideaId);
+        if (!$idea) {
+            return ['action' => 'error', 'message' => 'Idea not found'];
         }
 
+        if ($existingVote) {
+            // If voting same type, remove vote (toggle off)
+            if ($existingVote->type === $type) {
+                $existingVote->delete();
+                
+                // Decrement count
+                if ($type === 'up') {
+                    $idea->decrement('votes');
+                } else {
+                    $idea->decrement('downvotes');
+                }
+
+                return ['action' => 'removed', 'vote' => null];
+            } 
+            // If voting different type, switch vote
+            else {
+                $oldType = $existingVote->type;
+                $existingVote->type = $type;
+                $existingVote->save();
+
+                // Update counts
+                if ($type === 'up') {
+                    $idea->increment('votes');
+                    $idea->decrement('downvotes');
+                } else {
+                    $idea->increment('downvotes');
+                    $idea->decrement('votes');
+                }
+
+                return ['action' => 'switched', 'vote' => $existingVote];
+            }
+        }
+
+        // Create new vote
         $vote = static::create([
             'idea_id' => $ideaId,
             'user_id' => $userId,
             'voter_ip' => $ip,
             'voter_email' => $email,
+            'type' => $type,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
-        // Increment vote count on the idea
-        CommunityIdea::where('id', $ideaId)->increment('votes');
+        // Increment count
+        if ($type === 'up') {
+            $idea->increment('votes');
+        } else {
+            $idea->increment('downvotes');
+        }
 
-        return $vote;
+        return ['action' => 'created', 'vote' => $vote];
     }
 
     /**
@@ -128,10 +174,15 @@ class CommunityIdeaVote extends Model
             return false;
         }
 
+        $type = $vote->type;
         $vote->delete();
 
         // Decrement vote count on the idea
-        CommunityIdea::where('id', $ideaId)->where('votes', '>', 0)->decrement('votes');
+        if ($type === 'up') {
+            CommunityIdea::where('id', $ideaId)->where('votes', '>', 0)->decrement('votes');
+        } else {
+            CommunityIdea::where('id', $ideaId)->where('downvotes', '>', 0)->decrement('downvotes');
+        }
 
         return true;
     }

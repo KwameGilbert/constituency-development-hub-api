@@ -135,6 +135,11 @@ class EmploymentJob extends Model
         return $this->belongsTo(WebAdmin::class, 'updated_by');
     }
 
+    public function applicants()
+    {
+        return $this->hasMany(JobApplicant::class, 'job_id');
+    }
+
     /* -----------------------------------------------------------------
      |  Query Scopes
      | -----------------------------------------------------------------

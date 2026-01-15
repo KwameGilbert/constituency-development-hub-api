@@ -36,6 +36,7 @@ return function (App $app) {
     // Admin routes (require admin or web_admin role)
     $app->group('/v1/admin/announcements', function ($group) use ($controller) {
         $group->get('', [$controller, 'index']);
+        $group->get('/{id}', [$controller, 'show']);
         $group->post('', [$controller, 'store']);
         $group->put('/{id}', [$controller, 'update']);
         $group->delete('/{id}', [$controller, 'destroy']);

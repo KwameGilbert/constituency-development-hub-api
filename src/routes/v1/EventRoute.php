@@ -29,6 +29,7 @@ return function (App $app) {
         $group->get('/{id:[0-9]+}', [$controller, 'show']);
         $group->post('', [$controller, 'store']);
         $group->put('/{id}', [$controller, 'update']);
+        $group->post('/{id}', [$controller, 'update']); // POST also supported for FormData updates
         $group->delete('/{id}', [$controller, 'destroy']);
     })->add(new RoleMiddleware(['web_admin']))->add($authMiddleware);
 };

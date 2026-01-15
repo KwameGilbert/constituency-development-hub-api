@@ -6,6 +6,7 @@
  * Registers all application middleware
  */
 use Slim\Middleware\ContentLengthMiddleware;
+use Slim\Middleware\MethodOverrideMiddleware;
 use App\Helper\ErrorHandler as ErrorHandler;
 use App\Middleware\RequestResponseLoggerMiddleware;
 use App\Middleware\JsonBodyParserMiddleware as JsonBodyParserMiddleware;
@@ -27,6 +28,9 @@ return function ($app, $container, $config) {
         logger: $container->get('logger')
     );
     
+    // Add Method Override Middleware (Important for Forms/PUT requests)
+    $app->add(new MethodOverrideMiddleware());
+    
     // Set custom error handler
     $errorHandler = new ErrorHandler(
         $container->get('logger'),
@@ -46,18 +50,23 @@ return function ($app, $container, $config) {
     // Add Rate Limit middleware
     $app->add(new RateLimitMiddleware());
 
+    // ==================== JSON BODY PARSING ====================
+    
+    $app->add($container->get(JsonBodyParserMiddleware::class));
+
     // ==================== CORS ====================
     
-    // Add CORS middleware
+    // Add CORS middleware - Added LAST so it runs FIRST (wrapping all others like JsonBodyParser)
     $app->add(function ($request, $handler) use ($corsConfig) {
         $response = $handler->handle($request);
-        $allowedOrigins = $corsConfig['allowed_origins'];
+        $allowedOrigin = $corsConfig['allowed_origins'];
+        
         $allowCredentials = is_callable($corsConfig['allow_credentials']) 
-            ? $corsConfig['allow_credentials']($allowedOrigins) 
+            ? $corsConfig['allow_credentials']($allowedOrigin) 
             : $corsConfig['allow_credentials'];
             
         return $response
-            ->withHeader('Access-Control-Allow-Origin', '*')
+            ->withHeader('Access-Control-Allow-Origin', $allowedOrigin)
             ->withHeader('Access-Control-Allow-Headers', $corsConfig['allowed_headers'])
             ->withHeader('Access-Control-Allow-Methods', $corsConfig['allowed_methods'])
             ->withHeader('Access-Control-Allow-Credentials', $allowCredentials)
@@ -68,13 +77,13 @@ return function ($app, $container, $config) {
     
     // Handle preflight OPTIONS requests
     $app->options('/{routes:.+}', function ($request, $response) use ($corsConfig) {
-        $allowedOrigins = $corsConfig['allowed_origins'];
+        $allowedOrigin = $corsConfig['allowed_origins'];
         $allowCredentials = is_callable($corsConfig['allow_credentials']) 
-            ? $corsConfig['allow_credentials']($allowedOrigins) 
+            ? $corsConfig['allow_credentials']($allowedOrigin) 
             : $corsConfig['allow_credentials'];
             
         return $response
-            ->withHeader('Access-Control-Allow-Origin', '*')
+            ->withHeader('Access-Control-Allow-Origin', $allowedOrigin)
             ->withHeader('Access-Control-Allow-Headers', $corsConfig['allowed_headers'])
             ->withHeader('Access-Control-Allow-Methods', $corsConfig['allowed_methods'])
             ->withHeader('Access-Control-Allow-Credentials', $allowCredentials)
@@ -82,10 +91,6 @@ return function ($app, $container, $config) {
             ->withHeader('Access-Control-Max-Age', (string)$corsConfig['max_age'])
             ->withHeader('Content-Type', 'application/json');
     });
-    
-    // ==================== JSON BODY PARSING ====================
-    
-    $app->add($container->get(JsonBodyParserMiddleware::class));
     
     // ==================== CONTENT LENGTH ====================
     

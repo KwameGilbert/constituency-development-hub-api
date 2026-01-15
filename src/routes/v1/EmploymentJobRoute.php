@@ -41,5 +41,8 @@ return function (App $app) {
         $group->delete('/{id}', [$controller, 'destroy']);
         $group->post('/{id}/publish', [$controller, 'publish']);
         $group->post('/{id}/close', [$controller, 'close']);
+        // Applicants management
+        $group->get('/{id}/applicants', [$controller, 'getApplicants']);
+        $group->put('/{id}/applicants/{applicantId}', [$controller, 'updateApplicantStatus']);
     })->add(new RoleMiddleware(['admin', 'web_admin']))->add($authMiddleware);
 };

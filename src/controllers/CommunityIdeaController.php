@@ -80,8 +80,8 @@ class CommunityIdeaController
             $limit = (int) ($params['limit'] ?? 20);
             $category = $params['category'] ?? null;
 
-            // Only show approved or implemented ideas publicly
-            $query = CommunityIdea::whereIn('status', ['approved', 'implemented']);
+            // Show all ideas except rejected ones publicly to encourage participation
+            $query = CommunityIdea::whereIn('status', ['approved', 'implemented', 'pending', 'under_review']);
 
             if ($category) {
                 $query->where('category', $category);
@@ -324,25 +324,43 @@ class CommunityIdeaController
                 return ResponseHelper::error($response, 'Idea not found', 404);
             }
 
-            // Only allow voting on approved ideas
-            if (!$idea->isApproved() && !$idea->isImplemented()) {
+            // Allow voting on all public ideas (pending, under_review, approved, implemented)
+            // Only block voting on rejected ideas
+            if ($idea->status === 'rejected') {
                 return ResponseHelper::error($response, 'Cannot vote on this idea', 400);
+            }
+
+            // Get vote type from request body
+            $body = $request->getParsedBody();
+            $type = $body['type'] ?? 'up';
+
+            if (!in_array($type, ['up', 'down'])) {
+                return ResponseHelper::error($response, 'Invalid vote type', 400);
             }
 
             // Get IP address for anonymous voting
             $ip = $request->getServerParams()['REMOTE_ADDR'] ?? null;
 
-            $vote = CommunityIdeaVote::recordVote(
+            $result = CommunityIdeaVote::recordVote(
                 $id,
                 $user ? $user->id : null,
-                $ip
+                $ip,
+                $type
             );
 
-            if (!$vote) {
-                return ResponseHelper::error($response, 'You have already voted for this idea', 400);
+            if (!$result || (isset($result['action']) && $result['action'] === 'error')) {
+                $message = $result['message'] ?? 'Failed to record vote';
+                return ResponseHelper::error($response, $message, 400);
             }
 
-            return ResponseHelper::success($response, 'Vote recorded', [
+            $message = 'Vote recorded';
+            if ($result['action'] === 'removed') {
+                $message = 'Vote removed';
+            } elseif ($result['action'] === 'switched') {
+                $message = 'Vote switched';
+            }
+
+            return ResponseHelper::success($response, $message, [
                 'idea' => $idea->fresh()->toPublicArray(),
             ]);
         } catch (Exception $e) {

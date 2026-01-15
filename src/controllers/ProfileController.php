@@ -58,7 +58,8 @@ public function show(Request $request, Response $response): Response
         $user = User::find($userId);
 
         if (!$user) {
-            return ResponseHelper::error($response, 'User not found', 404);
+            // User from token not found in DB - likely stale token
+            return ResponseHelper::error($response, 'Session invalid. Please log in again.', 401);
         }
 
         // Get full profile with role-specific data
@@ -134,7 +135,7 @@ public function show(Request $request, Response $response): Response
                     'action' => 'profile_update',
                     'entity_type' => 'user',
                     'entity_id' => $user->id,
-                    'details' => json_encode(['updated_fields' => array_keys($updateData)]),
+                    'metadata' => ['updated_fields' => array_keys($updateData)],
                 ]);
             }
 
@@ -198,7 +199,7 @@ public function show(Request $request, Response $response): Response
                 'action' => 'avatar_upload',
                 'entity_type' => 'user',
                 'entity_id' => $user->id,
-                'details' => json_encode(['new_avatar' => $avatarUrl]),
+                'metadata' => ['new_avatar' => $avatarUrl],
             ]);
 
             return ResponseHelper::success($response, 'Avatar uploaded successfully', [
@@ -258,7 +259,7 @@ public function show(Request $request, Response $response): Response
                 'action' => 'password_change',
                 'entity_type' => 'user',
                 'entity_id' => $user->id,
-                'details' => json_encode(['changed_at' => Carbon::now()->toISOString()]),
+                'metadata' => ['changed_at' => Carbon::now()->toISOString()],
             ]);
 
             return ResponseHelper::success($response, 'Password changed successfully');
@@ -297,7 +298,7 @@ public function show(Request $request, Response $response): Response
                     'action' => $log->action,
                     'entity_type' => $log->entity_type,
                     'entity_id' => $log->entity_id,
-                    'details' => json_decode($log->details, true),
+                    'details' => $log->metadata ?? [], // Access metadata (cast array), expose as details
                     'ip_address' => $log->ip_address ?? null,
                     'user_agent' => $log->user_agent ?? null,
                     'created_at' => $log->created_at->toISOString(),
