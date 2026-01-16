@@ -24,7 +24,7 @@ return function (App $app) {
         $group->put('/profile', [$controller, 'updateProfile']);
         $group->put('/password', [$controller, 'changePassword']);
         $group->get('/my-reports', [$controller, 'myReports']);
-        $group->post('/issues', [$controller, 'submitIssue']);
+        // $group->post('/issues', [$controller, 'submitIssue']);
         $group->get('/issues/{id}', [$controller, 'getIssue']);
     })->add(new RoleMiddleware(['agent']))->add($authMiddleware);
 
