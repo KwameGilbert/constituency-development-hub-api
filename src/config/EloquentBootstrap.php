@@ -28,27 +28,32 @@ class EloquentBootstrap
         $capsule = new Capsule;
 
         // Check environment - default to local if not specified
-        $env = isset($_ENV['APP_ENV']) ? $_ENV['APP_ENV'] : 'development';
+        $env = $_SERVER['APP_ENV'] ?? getenv('APP_ENV') ?: (isset($_ENV['APP_ENV']) ? $_ENV['APP_ENV'] : 'development');
         $prefix = $env === 'production' ? 'PROD_DB_' : 'LOCAL_DB_';
 
-        $driver = $_ENV[$prefix . 'DRIVER'] ?? 'mysql';
+        // Helper to getenv reliably
+        $getEnv = function($key) {
+            return $_SERVER[$key] ?? getenv($key) ?: (isset($_ENV[$key]) ? $_ENV[$key] : null);
+        };
+
+        $driver = $getEnv($prefix . 'DRIVER') ?? 'mysql';
 
         // Build base connection config
         $connectionConfig = [
             'driver' => $driver,
-            'host' => $_ENV[$prefix . 'HOST'],
-            'port' => $_ENV[$prefix . 'PORT'],
-            'database' => $_ENV[$prefix . 'DATABASE'],
-            'username' => $_ENV[$prefix . 'USERNAME'],
-            'password' => $_ENV[$prefix . 'PASSWORD'],
-            'charset' => $driver === 'pgsql' ? 'utf8' : ($_ENV[$prefix . 'CHARSET'] ?? 'utf8mb4'),
+            'host' => $getEnv($prefix . 'HOST'),
+            'port' => $getEnv($prefix . 'PORT'),
+            'database' => $getEnv($prefix . 'DATABASE'),
+            'username' => $getEnv($prefix . 'USERNAME'),
+            'password' => $getEnv($prefix . 'PASSWORD'),
+            'charset' => $driver === 'pgsql' ? 'utf8' : ($getEnv($prefix . 'CHARSET') ?? 'utf8mb4'),
             'prefix' => '',
             'strict' => true,
         ];
 
         // Add MySQL specific options
         if ($driver === 'mysql') {
-            $connectionConfig['collation'] = $_ENV[$prefix . 'COLLATION'] ?? 'utf8mb4_unicode_ci';
+            $connectionConfig['collation'] = $getEnv($prefix . 'COLLATION') ?? 'utf8mb4_unicode_ci';
             $connectionConfig['engine'] = null;
         }
 
@@ -58,8 +63,8 @@ class EloquentBootstrap
         }
 
         // Handle SSL/CA Certificate
-        $caCertificate = $_ENV[$prefix . 'CA_CERTIFICATE'] ?? null;
-        $sslMode = $_ENV[$prefix . 'SSL'] ?? null;
+        $caCertificate = $getEnv($prefix . 'CA_CERTIFICATE');
+        $sslMode = $getEnv($prefix . 'SSL');
 
         if ($caCertificate || $sslMode) {
             // Resolve CA certificate path or content
