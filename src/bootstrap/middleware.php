@@ -59,7 +59,23 @@ return function ($app, $container, $config) {
     // Add CORS middleware - Added LAST so it runs FIRST (wrapping all others like JsonBodyParser)
     $app->add(function ($request, $handler) use ($corsConfig) {
         $response = $handler->handle($request);
-        $allowedOrigin = $corsConfig['allowed_origins'];
+        $allowedOrigins = explode(',', $corsConfig['allowed_origins']);
+        $origin = $request->getHeaderLine('Origin');
+
+        // Check if origin is allowed
+        if (in_array($origin, $allowedOrigins)) {
+            $allowedOrigin = $origin;
+        } else {
+            // Default to first allowed origin if not matched (or keep strict?)
+            // For security, usually better to NOT return ACAO if not matched, 
+            // but for this patch we'll fallback to the first one or just return null
+            $allowedOrigin = $allowedOrigins[0]; 
+        }
+
+        // Handle wildcard case
+        if (trim($corsConfig['allowed_origins']) === '*') {
+            $allowedOrigin = '*';
+        }
         
         $allowCredentials = is_callable($corsConfig['allow_credentials']) 
             ? $corsConfig['allow_credentials']($allowedOrigin) 
@@ -77,7 +93,19 @@ return function ($app, $container, $config) {
     
     // Handle preflight OPTIONS requests
     $app->options('/{routes:.+}', function ($request, $response) use ($corsConfig) {
-        $allowedOrigin = $corsConfig['allowed_origins'];
+        $allowedOrigins = explode(',', $corsConfig['allowed_origins']);
+        $origin = $request->getHeaderLine('Origin');
+
+        if (in_array($origin, $allowedOrigins)) {
+            $allowedOrigin = $origin;
+        } else {
+            $allowedOrigin = $allowedOrigins[0];
+        }
+
+        if (trim($corsConfig['allowed_origins']) === '*') {
+            $allowedOrigin = '*';
+        }
+
         $allowCredentials = is_callable($corsConfig['allow_credentials']) 
             ? $corsConfig['allow_credentials']($allowedOrigin) 
             : $corsConfig['allow_credentials'];

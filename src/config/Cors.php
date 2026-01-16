@@ -10,7 +10,7 @@ return [
     // Allowed Origins
     // In production, set to specific domains: 'https://yourdomain.com,https://app.yourdomain.com'
     // In development, can use '*' for testing
-    'allowed_origins' => 'http://localhost:3000',
+    'allowed_origins' => isset($_ENV['ALLOWED_ORIGINS']) ? $_ENV['ALLOWED_ORIGINS'] : 'http://localhost:3000',
     
     // Allowed Headers
     'allowed_headers' => 'X-Requested-With, Content-Type, Accept, Origin, Authorization, X-HTTP-Method-Override',
