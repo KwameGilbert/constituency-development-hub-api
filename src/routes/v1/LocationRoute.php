@@ -18,6 +18,9 @@ return function (App $app): void {
     $controller = $app->getContainer()->get(LocationController::class);
     $authMiddleware = $app->getContainer()->get(AuthMiddleware::class);
 
+    // Public/Shared location routes
+    $app->get('/v1/locations', [$controller, 'index']);
+
     // Admin location management routes (require admin or web_admin role)
     $app->group('/v1/admin/locations', function ($group) use ($controller) {
         // GET /v1/admin/locations/types - Get location types summary (must be before /{id})
