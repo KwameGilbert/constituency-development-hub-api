@@ -59,7 +59,7 @@ return function ($app, $container, $config) {
     // Add CORS middleware - Added LAST so it runs FIRST (wrapping all others like JsonBodyParser)
     $app->add(function ($request, $handler) use ($corsConfig) {
         $response = $handler->handle($request);
-        $allowedOrigins = explode(',', $corsConfig['allowed_origins']);
+        $allowedOrigins = explode(',', (string)$corsConfig['allowed_origins']);
         $origin = $request->getHeaderLine('Origin');
 
         // Check if origin is allowed
@@ -93,7 +93,7 @@ return function ($app, $container, $config) {
     
     // Handle preflight OPTIONS requests
     $app->options('/{routes:.+}', function ($request, $response) use ($corsConfig) {
-        $allowedOrigins = explode(',', $corsConfig['allowed_origins']);
+        $allowedOrigins = explode(',', (string)$corsConfig['allowed_origins']);
         $origin = $request->getHeaderLine('Origin');
 
         if (in_array($origin, $allowedOrigins)) {
