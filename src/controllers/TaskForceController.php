@@ -338,12 +338,24 @@ class TaskForceController
                 $query->where('status', 'active');
             })->count();
 
-            // Priority breakdown
+            // Define allowed statuses for Task Force visibility (same as in issues method)
+            $allowedStatuses = [
+                IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE,
+                IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                IssueReport::STATUS_ASSESSMENT_SUBMITTED,
+                IssueReport::STATUS_RESOURCES_ALLOCATED,
+                IssueReport::STATUS_RESOLUTION_IN_PROGRESS,
+                IssueReport::STATUS_RESOLUTION_SUBMITTED,
+                IssueReport::STATUS_RESOLVED,
+                IssueReport::STATUS_CLOSED
+            ];
+
+            // Priority breakdown (Restricted to visible issues)
             $urgentIssues = IssueReport::where('priority', 'urgent')
-                ->whereNotIn('status', [IssueReport::STATUS_RESOLVED, IssueReport::STATUS_CLOSED])
+                ->whereIn('status', $allowedStatuses)
                 ->count();
             $highPriorityIssues = IssueReport::where('priority', 'high')
-                ->whereNotIn('status', [IssueReport::STATUS_RESOLVED, IssueReport::STATUS_CLOSED])
+                ->whereIn('status', $allowedStatuses)
                 ->count();
 
             return ResponseHelper::success($response, 'Dashboard stats fetched successfully', [
@@ -544,16 +556,35 @@ class TaskForceController
             // But specific status filter 'assigned_to_task_force' is passed by frontend.
             $query = IssueReport::with(['submittedByAgent.user', 'assignedTaskForce.user']);
 
+            // Define allowed statuses for Task Force visibility
+            $allowedStatuses = [
+                IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE,
+                IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                IssueReport::STATUS_ASSESSMENT_SUBMITTED, // Added this one as they should see what they submitted
+                IssueReport::STATUS_RESOURCES_ALLOCATED,
+                IssueReport::STATUS_RESOLUTION_IN_PROGRESS,
+                IssueReport::STATUS_RESOLUTION_SUBMITTED,
+                IssueReport::STATUS_RESOLVED,
+                IssueReport::STATUS_CLOSED
+            ];
+
             if ($status) {
+                if (!in_array($status, $allowedStatuses)) {
+                    // If requesting a status they shouldn't see (like 'submitted' or 'forwarded_to_admin'), return empty
+                    return ResponseHelper::success($response, 'Issues fetched successfully', [
+                        'issues' => [],
+                        'pagination' => [
+                            'total' => 0,
+                            'page' => $page,
+                            'limit' => $limit,
+                            'total_pages' => 0
+                        ]
+                    ]);
+                }
                 $query->where('status', $status);
             } else {
-                // Default: show relevant issues
-                 $query->whereIn('status', [
-                    IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE,
-                    IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
-                    IssueReport::STATUS_RESOURCES_ALLOCATED,
-                    IssueReport::STATUS_RESOLUTION_IN_PROGRESS,
-                ]);
+                // Default: show all allowed active statuses
+                 $query->whereIn('status', $allowedStatuses);
             }
 
             if ($priority) {
@@ -672,9 +703,11 @@ class TaskForceController
             error_log("submitAssessment: User ID: $userId, Role: " . ($dbUser ? $dbUser->role : 'null') . ", isAdmin: " . ($isAdmin ? 'true' : 'false'));
             error_log("submitAssessment: Issue ID: {$issue->id}, assigned_task_force_id: " . ($issue->assigned_task_force_id ?? 'null') . ", member->id: {$member->id}");
 
-            // Perform strict check only if issue is already assigned
-            if (!$isAdmin && $issue->assigned_task_force_id && $issue->assigned_task_force_id != $member->id) {
-                return ResponseHelper::error($response, 'Issue is assigned to another member', 403);
+            // Allow claiming: If assigned to someone else (or null), reassign to current user
+            if (!$isAdmin && $issue->assigned_task_force_id != $member->id) {
+                 error_log("submitAssessment: Reassigning issue {$issue->id} from " . ($issue->assigned_task_force_id ?? 'null') . " to {$member->id}");
+                 $issue->assigned_task_force_id = $member->id;
+                 $issue->save();
             }
 
             // Auto-assign if unassigned (especially for Admins testing)

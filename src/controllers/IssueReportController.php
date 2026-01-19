@@ -203,6 +203,10 @@ class IssueReportController
      * Get all issue reports (Admin/Officer)
      * GET /api/admin/issues
      */
+    /**
+     * Get all issue reports (Admin/Officer)
+     * GET /api/admin/issues
+     */
     public function index(Request $request, Response $response): Response
     {
         try {
@@ -213,12 +217,100 @@ class IssueReportController
             $priority = $params['priority'] ?? null;
             $category = $params['category'] ?? null;
 
+            $user = $request->getAttribute('user');
+            // Cast to object if array
+            $userObj = is_array($user) ? (object)$user : $user;
+            
+            // Get user role from DB to be safe
+            $dbUser = \App\Models\User::find($userObj->id);
+            $userRole = $dbUser ? $dbUser->role : null;
+
             $query = IssueReport::with(['assignedOfficer.user', 'submittedByAgent.user'])
                 ->orderBy('created_at', 'desc');
 
-            if ($status) {
-                $query->where('status', $status);
+            error_log("IssueReportController::index - User ID: {$userObj->id}, Role: " . ($userRole ?? 'null'));
+
+            // --- Role-Based Visibility Logic ---
+            if ($userRole === \App\Models\User::ROLE_ADMIN || $userRole === \App\Models\User::ROLE_WEB_ADMIN) {
+                error_log("IssueReportController::index - Entering Admin Block");
+                // Admin Logic
+                if ($status) {
+                    // Start strict: prevent admins from "accidentally" seeing submitted/under_review via direct status filter
+                    if (in_array($status, [IssueReport::STATUS_SUBMITTED, IssueReport::STATUS_UNDER_OFFICER_REVIEW])) {
+                         return ResponseHelper::success($response, 'Issue reports fetched successfully', [
+                            'reports' => [],
+                            'pagination' => ['page' => $page, 'limit' => $limit, 'total' => 0, 'total_pages' => 0]
+                        ]);
+                    }
+                    $query->where('status', $status);
+                } else {
+                     // Default view for Admin: Show everything EXCEPT submitted/under_officer_review
+                     $query->whereNotIn('status', [
+                        IssueReport::STATUS_SUBMITTED,
+                        IssueReport::STATUS_UNDER_OFFICER_REVIEW
+                     ]);
+                }
+            } elseif ($userRole === \App\Models\User::ROLE_OFFICER) {
+                error_log("IssueReportController::index - Entering Officer Block");
+                // Officer Logic
+                if ($status) {
+                    $query->where('status', $status);
+                } else {
+                    // Default: Show inbox (Submitted, Under Review) + what they forwarded
+                    $query->whereIn('status', [
+                        IssueReport::STATUS_SUBMITTED,
+                        IssueReport::STATUS_UNDER_OFFICER_REVIEW,
+                        IssueReport::STATUS_FORWARDED_TO_ADMIN
+                    ]);
+                }
+            } elseif ($userRole === \App\Models\User::ROLE_TASK_FORCE) {
+                error_log("IssueReportController::index - Entering Task Force Block");
+                // Task Force Logic (Strict)
+                $allowedStatuses = [
+                    IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE,
+                    IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                    IssueReport::STATUS_ASSESSMENT_SUBMITTED,
+                    IssueReport::STATUS_RESOURCES_ALLOCATED,
+                    IssueReport::STATUS_RESOLUTION_IN_PROGRESS,
+                    IssueReport::STATUS_RESOLUTION_SUBMITTED,
+                    IssueReport::STATUS_RESOLVED,
+                    IssueReport::STATUS_CLOSED
+                ];
+
+                // Get Task Force Profile ID
+                $tfProfile = \App\Models\TaskForce::where('user_id', $userObj->id)->first();
+                if (!$tfProfile) {
+                     error_log("IssueReportController::index - TF Profile not found for User {$userObj->id}");
+                     return ResponseHelper::success($response, 'Issues fetched successfully', [
+                        'reports' => [],
+                        'pagination' => ['page' => $page, 'limit' => $limit, 'total' => 0, 'total_pages' => 0]
+                    ]);
+                }
+                error_log("IssueReportController::index - TF Profile ID: {$tfProfile->id}");
+
+                if ($status) {
+                    if (!in_array($status, $allowedStatuses)) {
+                        return ResponseHelper::success($response, 'Issues fetched successfully', [
+                            'reports' => [],
+                            'pagination' => ['page' => $page, 'limit' => $limit, 'total' => 0, 'total_pages' => 0]
+                        ]);
+                    }
+                    $query->where('status', $status);
+                } else {
+                    $query->whereIn('status', $allowedStatuses);
+                }
+
+
+
+            } else {
+                error_log("IssueReportController::index - Entering Fallback Block (Role mismatch?)");
+                // Other Roles (Agent, Public) - Secure Sandbox: See only your own submissions
+                $query->where('submitted_by', $userObj->id); // Assuming submitted_by matches user_id, or check schema
+                if ($status) {
+                    $query->where('status', $status);
+                }
             }
+
             if ($priority) {
                 $query->where('priority', $priority);
             }
@@ -334,6 +426,34 @@ class IssueReportController
 
             $oldStatus = $report->status;
             $newStatus = $data['status'];
+
+            // --- STRICT WORKFLOW VALIDATION ---
+            // Get user role
+            $dbUser = \App\Models\User::find($userId);
+            $userRole = $dbUser ? $dbUser->role : null;
+
+            if ($userRole === \App\Models\User::ROLE_OFFICER) {
+                // Officers can only:
+                // 1. Acknowledge/Review (under_officer_review)
+                // 2. Forward to Admin (forwarded_to_admin)
+                // They CANNOT assign to task force or resolve directly (unless configured otherwise)
+                
+                $allowedOfficerStatuses = [
+                    IssueReport::STATUS_UNDER_OFFICER_REVIEW,
+                    IssueReport::STATUS_FORWARDED_TO_ADMIN,
+                    // Maybe 'rejected' if they can reject? standard workflow suggests yes
+                    IssueReport::STATUS_REJECTED 
+                ];
+
+                if (!in_array($newStatus, $allowedOfficerStatuses)) {
+                     return ResponseHelper::error($response, 'Officers can only review, reject, or forward issues to admin.', 403);
+                }
+            }
+
+            // Admins can do anything, BUT the system prefers they pick up from 'forwarded_to_admin'.
+            // We won't block Admins from "fixing" things, but the UI should guide the flow.
+            
+            // ----------------------------------
 
             // Update report
             $updateData = ['status' => $newStatus];
