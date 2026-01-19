@@ -7,7 +7,10 @@ use Slim\Routing\RouteCollectorProxy;
 return function ($app): void {
     $container = $app->getContainer();
 
-    $app->group('/v1/upload', function (RouteCollectorProxy $group) use ($container) {
+    $app->group('/v1/admin/upload', function (RouteCollectorProxy $group) use ($container) {
+        // Generic upload (matches frontend uploadService)
+        $group->post('', [UploadController::class, 'upload']);
+
         // Get upload info (public)
         $group->get('/info', [UploadController::class, 'getUploadInfo']);
 

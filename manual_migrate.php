@@ -37,26 +37,25 @@ try {
     EloquentBootstrap::boot();
     logMsg("Booted Eloquent");
 
-    // Run migrations
-    if (!Capsule::schema()->hasColumn('community_ideas', 'downvotes')) {
-        logMsg("Adding downvotes column to community_ideas...");
-        Capsule::schema()->table('community_ideas', function (Blueprint $table) {
-            $table->integer('downvotes')->default(0)->after('votes');
-        });
-        logMsg("Added downvotes column.");
-    } else {
-        logMsg("Column 'downvotes' already exists.");
-    }
-
-    if (!Capsule::schema()->hasColumn('community_idea_votes', 'type')) {
-        logMsg("Adding type column to community_idea_votes...");
-        Capsule::schema()->table('community_idea_votes', function (Blueprint $table) {
-            $table->enum('type', ['up', 'down'])->default('up')->after('user_id');
-        });
-        logMsg("Added type column.");
-    } else {
-        logMsg("Column 'type' already exists.");
-    }
+    // Update issue_reports status ENUM
+    logMsg("Updating issue_reports status ENUM...");
+    Capsule::connection()->statement("
+        ALTER TABLE issue_reports MODIFY COLUMN status ENUM(
+            'submitted',
+            'under_officer_review',
+            'forwarded_to_admin',
+            'assigned_to_task_force',
+            'assessment_in_progress',
+            'assessment_submitted',
+            'resources_allocated',
+            'resolution_in_progress',
+            'resolution_submitted',
+            'resolved',
+            'closed',
+            'rejected'
+        ) NOT NULL DEFAULT 'submitted'
+    ");
+    logMsg("Updated issue_reports status ENUM successfully.");
 
     logMsg("Migration completed successfully.");
 

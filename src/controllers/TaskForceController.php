@@ -501,7 +501,7 @@ class TaskForceController
     {
         try {
             $user = $request->getAttribute('user');
-            $member = TaskForce::findByUserId($user->id);
+            $member = $this->ensureTaskForceProfile($user);
 
             if (!$member) {
                 return ResponseHelper::error($response, 'Task force profile not found', 404);
@@ -614,7 +614,7 @@ class TaskForceController
     {
         try {
             $user = $request->getAttribute('user');
-            $member = TaskForce::findByUserId($user->id);
+            $member = $this->ensureTaskForceProfile($user);
 
             if (!$member) {
                 return ResponseHelper::error($response, 'Task force profile not found', 404);
@@ -647,7 +647,7 @@ class TaskForceController
     {
         try {
             $user = $request->getAttribute('user');
-            $member = TaskForce::findByUserId($user->id);
+            $member = $this->ensureTaskForceProfile($user);
 
             if (!$member) {
                 return ResponseHelper::error($response, 'Task force profile not found', 404);
@@ -657,12 +657,31 @@ class TaskForceController
                 return ResponseHelper::error($response, 'You do not have permission to assess issues', 403);
             }
 
-            $issue = IssueReport::where('id', $args['id'])
-                ->where('assigned_task_force_id', $member->id)
-                ->first();
+            // Fetch the issue
+            $issue = IssueReport::find($args['id']);
 
             if (!$issue) {
-                return ResponseHelper::error($response, 'Issue not assigned to you', 404);
+                return ResponseHelper::error($response, 'Issue not found', 404);
+            }
+
+            // Check assignment - Allow Admins to assess any issue
+            $userId = is_object($user) ? $user->id : ($user['id'] ?? 0);
+            $dbUser = User::find($userId);
+            $isAdmin = $dbUser && in_array($dbUser->role, [User::ROLE_ADMIN, User::ROLE_OFFICER, User::ROLE_WEB_ADMIN]);
+
+            error_log("submitAssessment: User ID: $userId, Role: " . ($dbUser ? $dbUser->role : 'null') . ", isAdmin: " . ($isAdmin ? 'true' : 'false'));
+            error_log("submitAssessment: Issue ID: {$issue->id}, assigned_task_force_id: " . ($issue->assigned_task_force_id ?? 'null') . ", member->id: {$member->id}");
+
+            // Perform strict check only if issue is already assigned
+            if (!$isAdmin && $issue->assigned_task_force_id && $issue->assigned_task_force_id != $member->id) {
+                return ResponseHelper::error($response, 'Issue is assigned to another member', 403);
+            }
+
+            // Auto-assign if unassigned (especially for Admins testing)
+            if (!$issue->assigned_task_force_id) {
+                error_log("submitAssessment: Auto-assigning issue {$issue->id} to member {$member->id}");
+                $issue->assigned_task_force_id = $member->id;
+                $issue->save();
             }
 
             $data = $request->getParsedBody() ?? [];
@@ -704,6 +723,7 @@ class TaskForceController
             }
 
             // Create assessment report
+            error_log('submitAssessment: Creating assessment report record...');
             $assessment = IssueAssessmentReport::create([
                 'issue_report_id' => $issue->id,
                 'submitted_by' => $member->id,
@@ -721,9 +741,11 @@ class TaskForceController
                 'recommendations' => $data['recommendations'] ?? null,
                 'status' => IssueAssessmentReport::STATUS_SUBMITTED,
             ]);
+            error_log('submitAssessment: Assessment report created. ID: ' . $assessment->id);
 
             // Update issue status
             $issue->markAssessmentSubmitted();
+            error_log('submitAssessment: Issue status updated.');
 
             // Increment member's assessment count
             $member->incrementAssessments();
@@ -733,8 +755,10 @@ class TaskForceController
                 'assessment' => $assessment->toPublicArray(),
                 'issue' => $issue->fresh()->toFullArray()
             ], 201);
-        } catch (Exception $e) {
-            return ResponseHelper::error($response, 'Failed to submit assessment', 500, $e->getMessage());
+        } catch (\Throwable $e) {
+            error_log('submitAssessment: Exception caught: ' . $e->getMessage());
+            error_log('submitAssessment: Trace: ' . $e->getTraceAsString());
+            return ResponseHelper::error($response, '[Debug] Failed to submit assessment: ' . $e->getMessage(), 500, $e->getMessage());
         }
     }
 
@@ -746,7 +770,7 @@ class TaskForceController
     {
         try {
             $user = $request->getAttribute('user');
-            $member = TaskForce::findByUserId($user->id);
+            $member = $this->ensureTaskForceProfile($user);
 
             if (!$member) {
                 return ResponseHelper::error($response, 'Task force profile not found', 404);
@@ -780,7 +804,7 @@ class TaskForceController
     {
         try {
             $user = $request->getAttribute('user');
-            $member = TaskForce::findByUserId($user->id);
+            $member = $this->ensureTaskForceProfile($user);
 
             if (!$member) {
                 return ResponseHelper::error($response, 'Task force profile not found', 404);
@@ -978,5 +1002,56 @@ class TaskForceController
     {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
         return substr(str_shuffle($chars), 0, $length);
+    }
+
+    /**
+     * Helper to get or auto-create task force profile
+     */
+    private function ensureTaskForceProfile($requestUser): ?TaskForce
+    {
+        $userId = is_object($requestUser) ? $requestUser->id : ($requestUser['id'] ?? 0);
+        $member = TaskForce::findByUserId($userId);
+
+        if ($member) {
+            return $member;
+        }
+
+        // Auto-create for Admin/Officer or Task Force role with missing profile
+        $dbUser = User::find($userId);
+        
+        if ($dbUser) {
+            error_log("TaskForceController: Checking profile for User ID: {$dbUser->id}, Role: {$dbUser->role}");
+            
+            $allowedRoles = [
+                User::ROLE_ADMIN, 
+                User::ROLE_OFFICER, 
+                User::ROLE_WEB_ADMIN,
+                User::ROLE_TASK_FORCE
+            ];
+
+            if (in_array($dbUser->role, $allowedRoles)) {
+                try {
+                    error_log("TaskForceController: Auto-creating profile for User ID: {$dbUser->id}");
+                    return TaskForce::create([
+                        'user_id' => $dbUser->id,
+                        'employee_id' => TaskForce::generateEmployeeId(),
+                        'title' => ($dbUser->role === User::ROLE_TASK_FORCE) ? 'Task Force Member' : 'System Administrator',
+                        'specialization' => TaskForce::SPEC_GENERAL,
+                        'can_assess_issues' => true,
+                        'can_resolve_issues' => true,
+                        'can_request_resources' => true,
+                        'id_verified' => true
+                    ]);
+                } catch (Exception $e) {
+                    error_log("Failed to auto-create profile: " . $e->getMessage());
+                }
+            } else {
+                error_log("TaskForceController: Role '{$dbUser->role}' not allowed for auto-creation.");
+            }
+        } else {
+            error_log("TaskForceController: User not found for ID: $userId");
+        }
+
+        return null;
     }
 }

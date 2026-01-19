@@ -113,3 +113,30 @@ Request User Attribute: {"id":15,"email":"john@example.com","role":"web_admin","
 Searching for User ID: 15
 User::find returned null for ID: 15
 
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index
+Inside LocationController::index

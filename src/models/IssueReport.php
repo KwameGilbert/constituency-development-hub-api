@@ -85,12 +85,30 @@ class IssueReport extends Model
         'latitude',
         'longitude',
         'images',
+        // Classification fields (NEW)
+        'sector_id',
+        'sub_sector_id',
+        'issue_type',
+        'affected_people_count',
+        // Location hierarchy (NEW)
+        'main_community_id',
+        'smaller_community_id',
+        'suburb_id',
+        'cottage_id',
+        // Constituent information (RENAMED from reporter_*)
+        'constituent_name',
+        'constituent_email',
+        'constituent_contact',
+        'constituent_gender',
+        'constituent_address',
+        // Legacy fields for backward compatibility
         'reporter_name',
         'reporter_email',
         'reporter_phone',
         'submitted_by_agent_id',
         'submitted_by_officer_id',
         'assigned_officer_id',
+        'assigned_agent_id',
         'assigned_task_force_id',
         'status',
         'priority',
@@ -105,6 +123,12 @@ class IssueReport extends Model
         'resources_allocated_by',
         'resolved_at',
         'resolved_by',
+        // Review tracking (NEW)
+        'reviewed_by_officer_id',
+        'reviewed_at',
+        'assessment_reviewed_by',
+        'assessment_reviewed_at',
+        'assessment_decision',
     ];
 
     protected $casts = [
@@ -113,6 +137,14 @@ class IssueReport extends Model
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
         'allocated_budget' => 'decimal:2',
+        // IDs
+        'sector_id' => 'integer',
+        'sub_sector_id' => 'integer',
+        'affected_people_count' => 'integer',
+        'main_community_id' => 'integer',
+        'smaller_community_id' => 'integer',
+        'suburb_id' => 'integer',
+        'cottage_id' => 'integer',
         'submitted_by_agent_id' => 'integer',
         'submitted_by_officer_id' => 'integer',
         'assigned_officer_id' => 'integer',
@@ -120,11 +152,16 @@ class IssueReport extends Model
         'acknowledged_by' => 'integer',
         'resources_allocated_by' => 'integer',
         'resolved_by' => 'integer',
+        'reviewed_by_officer_id' => 'integer',
+        'assessment_reviewed_by' => 'integer',
+        // Timestamps
         'acknowledged_at' => 'datetime',
         'forwarded_to_admin_at' => 'datetime',
         'assigned_to_task_force_at' => 'datetime',
         'resources_allocated_at' => 'datetime',
         'resolved_at' => 'datetime',
+        'reviewed_at' => 'datetime',
+        'assessment_reviewed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -147,6 +184,11 @@ class IssueReport extends Model
     public function assignedOfficer()
     {
         return $this->belongsTo(Officer::class, 'assigned_officer_id');
+    }
+
+    public function assignedAgent()
+    {
+        return $this->belongsTo(Agent::class, 'assigned_agent_id');
     }
 
     public function assignedTaskForce()
@@ -187,6 +229,47 @@ class IssueReport extends Model
     public function resolutionReport()
     {
         return $this->hasOne(IssueResolutionReport::class, 'issue_report_id');
+    }
+
+    // NEW relationships for classification and location
+    public function sector()
+    {
+        return $this->belongsTo(Sector::class);
+    }
+
+    public function subSector()
+    {
+        return $this->belongsTo(SubSector::class);
+    }
+
+    public function mainCommunity()
+    {
+        return $this->belongsTo(Location::class, 'main_community_id');
+    }
+
+    public function smallerCommunity()
+    {
+        return $this->belongsTo(Location::class, 'smaller_community_id');
+    }
+
+    public function suburb()
+    {
+        return $this->belongsTo(Location::class, 'suburb_id');
+    }
+
+    public function cottage()
+    {
+        return $this->belongsTo(Location::class, 'cottage_id');
+    }
+
+    public function reviewedByOfficer()
+    {
+        return $this->belongsTo(Officer::class, 'reviewed_by_officer_id');
+    }
+
+    public function assessmentReviewedByUser()
+    {
+        return $this->belongsTo(User::class, 'assessment_reviewed_by');
     }
 
     /* -----------------------------------------------------------------

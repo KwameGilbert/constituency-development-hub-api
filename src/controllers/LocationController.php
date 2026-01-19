@@ -38,6 +38,7 @@ class LocationController
      */
     public function index(Request $request, Response $response): Response
     {
+        file_put_contents(__DIR__ . '/../../debug_log.txt', "Inside LocationController::index\n", FILE_APPEND);
         try {
             $params = $request->getQueryParams();
             
@@ -61,7 +62,9 @@ class LocationController
                 'pagination' => $result['pagination']
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
+            $logMessage = date('Y-m-d H:i:s') . " - Location Index Error: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n";
+            file_put_contents(__DIR__ . '/../../debug_log.txt', $logMessage, FILE_APPEND);
             return ResponseHelper::error($response, 'Failed to retrieve locations: ' . $e->getMessage(), 500);
         }
     }

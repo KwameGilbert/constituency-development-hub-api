@@ -36,5 +36,5 @@ return function (App $app) {
         $group->put('/{id}', [$controller, 'update']);
         $group->post('/{id}/verify', [$controller, 'verify']);
         $group->delete('/{id}', [$controller, 'destroy']);
-    })->add(new RoleMiddleware(['web_admin', 'officer']))->add($authMiddleware);
+    })->add(new RoleMiddleware(['web_admin', 'officer', 'admin']))->add($authMiddleware);
 };

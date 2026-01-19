@@ -33,7 +33,7 @@ return function (App $app) {
         $group->put('/{id}/forward', [$controller, 'officerForward']);
     })->add(new RoleMiddleware(['officer']))->add($authMiddleware);
 
-    // Admin routes - Viewing & Basic Management (web_admin or officer)
+    // Admin routes - Viewing & Basic Management (web_admin, admin, officer or task_force)
     $app->group('/v1/admin/issues', function ($group) use ($controller) {
         $group->get('', [$controller, 'index']);
         $group->get('/stats', [$controller, 'stats']);
@@ -42,13 +42,13 @@ return function (App $app) {
         $group->put('/{id}/status', [$controller, 'updateStatus']);
         $group->put('/{id}/assign', [$controller, 'assign']);
         $group->post('/{id}/comments', [$controller, 'addComment']);
-    })->add(new RoleMiddleware(['web_admin', 'officer', 'task_force']))->add($authMiddleware);
+    })->add(new RoleMiddleware(['admin', 'web_admin', 'officer', 'task_force']))->add($authMiddleware);
 
-    // Admin routes - Task Force Workflow (web_admin only)
+    // Admin routes - Task Force Workflow (admin or web_admin)
     $app->group('/v1/admin/issues', function ($group) use ($controller) {
         $group->put('/{id}/assign-task-force', [$controller, 'assignToTaskForce']);
         $group->put('/{id}/allocate-resources', [$controller, 'allocateResources']);
         $group->put('/{id}/review-assessment', [$controller, 'reviewAssessment']);
         $group->put('/{id}/review-resolution', [$controller, 'reviewResolution']);
-    })->add(new RoleMiddleware(['web_admin']))->add($authMiddleware);
+    })->add(new RoleMiddleware(['admin', 'web_admin']))->add($authMiddleware);
 };
