@@ -96,9 +96,9 @@ class AuthService
             error_log('JWT Secret (first 6 chars): ' . substr($this->jwtSecret, 0, 6));
             error_log('JWT Algorithm: ' . $this->jwtAlgorithm);
             error_log('Token length: ' . strlen($token));
-            
+
             $decoded = JWT::decode($token, new Key($this->jwtSecret, $this->jwtAlgorithm));
-            
+
             return $decoded;
         } catch (\Firebase\JWT\ExpiredException $e) {
             error_log('JWT Validation Error: Token has EXPIRED - ' . $e->getMessage());
