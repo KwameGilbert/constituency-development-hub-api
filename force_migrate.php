@@ -58,6 +58,22 @@ try {
         logMsg("Error checking/adding type: " . $e->getMessage());
     }
 
+    // 3. Add sub_sector_id to issue_reports
+    logMsg("Checking 'sub_sector_id' column in 'issue_reports'...");
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM issue_reports LIKE 'sub_sector_id'");
+        if ($stmt->rowCount() == 0) {
+            logMsg("Adding 'sub_sector_id' column...");
+            $pdo->exec("ALTER TABLE issue_reports ADD COLUMN sub_sector_id INT UNSIGNED NULL AFTER sector_id");
+            $pdo->exec("ALTER TABLE issue_reports ADD CONSTRAINT fk_issue_sub_sector FOREIGN KEY (sub_sector_id) REFERENCES sub_sectors(id) ON DELETE SET NULL ON UPDATE CASCADE");
+            logMsg("Column 'sub_sector_id' added.");
+        } else {
+            logMsg("Column 'sub_sector_id' already exists.");
+        }
+    } catch (PDOException $e) {
+        logMsg("Error checking/adding sub_sector_id: " . $e->getMessage());
+    }
+
     logMsg("Migration completed.");
 
 } catch (PDOException $e) {

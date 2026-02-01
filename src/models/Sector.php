@@ -64,6 +64,11 @@ class Sector extends Model
         return $this->hasMany(Project::class, 'sector_id');
     }
 
+    public function subSectors()
+    {
+        return $this->hasMany(SubSector::class, 'sector_id')->orderBy('display_order');
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(WebAdmin::class, 'created_by');

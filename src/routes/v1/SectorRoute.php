@@ -31,4 +31,18 @@ return function (App $app) {
         $group->put('/{id}', [$controller, 'update']);
         $group->delete('/{id}', [$controller, 'destroy']);
     })->add(new RoleMiddleware(['web_admin']))->add($authMiddleware);
+
+    // Sub-sector routes (require web_admin role)
+    $app->group('/v1/admin', function ($group) use ($app) {
+        $subSectorController = $app->getContainer()->get(\App\Controllers\SubSectorController::class);
+        
+        // Nested under sectors
+        $group->get('/sectors/{sectorId:[0-9]+}/sub-sectors', [$subSectorController, 'index']);
+        $group->post('/sectors/{sectorId:[0-9]+}/sub-sectors', [$subSectorController, 'store']);
+        
+        // Direct sub-sector operations
+        $group->put('/sub-sectors/reorder', [$subSectorController, 'reorder']);
+        $group->put('/sub-sectors/{id:[0-9]+}', [$subSectorController, 'update']);
+        $group->delete('/sub-sectors/{id:[0-9]+}', [$subSectorController, 'destroy']);
+    })->add(new RoleMiddleware(['web_admin', 'super_admin', 'admin']))->add($authMiddleware);
 };

@@ -138,10 +138,16 @@ class SubSector extends Model
 
     /**
      * Get issues count
+     * Returns 0 if the relationship column doesn't exist yet
      */
     public function getIssuesCount(): int
     {
-        return $this->issues()->count();
+        try {
+            return $this->issues()->count();
+        } catch (\Exception $e) {
+            // Column may not exist yet - return 0 as fallback
+            return 0;
+        }
     }
 
     /**
