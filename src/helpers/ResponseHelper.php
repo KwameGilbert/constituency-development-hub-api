@@ -85,4 +85,16 @@ class ResponseHelper
 
         return self::jsonResponse($response, $payload, $status);
     }
+
+    /**
+     * Send a validation error response.
+     *
+     * @param Response $response
+     * @param mixed $errors
+     * @return Response
+     */
+    public static function validationError(Response $response, $errors): Response
+    {
+        return self::error($response, 'Validation failed', 422, $errors);
+    }
 }

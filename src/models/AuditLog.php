@@ -121,7 +121,7 @@ class AuditLog extends Model
      * @return self
      */
     public static function logAction(
-        int $userId,
+        ?int $userId,
         string $action,
         string $entityType,
         ?int $entityId = null,

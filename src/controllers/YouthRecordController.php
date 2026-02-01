@@ -403,4 +403,86 @@ class YouthRecordController
 
         return $errors;
     }
+    /**
+     * Public youth registration
+     * POST /v1/youth/register
+     */
+    public function register(Request $request, Response $response): Response
+    {
+        try {
+            $data = $request->getParsedBody() ?? [];
+            
+            // Validation
+            $errors = $this->validateRecordData($data);
+            if (!empty($errors)) {
+                return ResponseHelper::validationError($response, $errors);
+            }
+
+            // Create record
+            $record = new YouthRecord();
+            $record->full_name = trim($data['full_name']);
+            $record->date_of_birth = !empty($data['date_of_birth']) ? Carbon::parse($data['date_of_birth']) : null;
+            $record->gender = $data['gender'] ?? null;
+            $record->national_id = trim($data['national_id'] ?? '');
+            $record->phone = trim($data['phone'] ?? '');
+            $record->email = trim($data['email'] ?? '');
+            $record->hometown = trim($data['hometown'] ?? '');
+            $record->community = trim($data['community'] ?? '');
+            
+            // Location ID handling - if provided
+            if (!empty($data['location_id'])) {
+                $record->location_id = (int) $data['location_id'];
+            }
+            
+            // Education
+            $record->education_level = $data['education_level'] ?? null;
+            $record->jhs_completed = !empty($data['jhs_completed']);
+            $record->shs_qualification = trim($data['shs_qualification'] ?? '');
+            $record->certificate_qualification = trim($data['certificate_qualification'] ?? '');
+            $record->diploma_qualification = trim($data['diploma_qualification'] ?? '');
+            $record->degree_qualification = trim($data['degree_qualification'] ?? '');
+            $record->postgraduate_qualification = trim($data['postgraduate_qualification'] ?? '');
+            $record->professional_qualification = trim($data['professional_qualification'] ?? '');
+            
+            // Employment
+            $record->employment_status = $data['employment_status'] ?? YouthRecord::EMP_STATUS_UNEMPLOYED;
+            $record->availability_status = $data['availability_status'] ?? YouthRecord::AVAIL_STATUS_AVAILABLE;
+            $record->current_employment = trim($data['current_employment'] ?? '');
+            $record->preferred_location = trim($data['preferred_location'] ?? '');
+            $record->salary_expectation = !empty($data['salary_expectation']) ? (float) $data['salary_expectation'] : null;
+            $record->employment_notes = trim($data['employment_notes'] ?? '');
+            
+            // Work experiences (JSON)
+            $record->work_experiences = $data['work_experiences'] ?? null;
+            
+            // Skills and interests
+            $record->skills = trim($data['skills'] ?? '');
+            $record->interests = trim($data['interests'] ?? '');
+            
+            // Administrative - FORCE Defaults
+            $record->status = YouthRecord::STATUS_PENDING;
+            $record->admin_notes = '';
+            $record->created_by = null; // System/Self created
+            
+            $record->save();
+
+            // Log the action (System user fallback)
+            AuditLog::logAction(
+                null, // System/Guest user
+                'register_youth_record',
+                'youth_records',
+                $record->id,
+                null,
+                ['source' => 'public_registration'] // Minimal log
+            );
+
+            return ResponseHelper::success($response, 'Registration received successfully', [
+                'record' => $record->toApiResponse(true)
+            ], 201);
+
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to complete registration: ' . $e->getMessage(), 500);
+        }
+    }
 }
+
