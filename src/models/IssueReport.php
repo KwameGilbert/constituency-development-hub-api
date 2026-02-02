@@ -519,6 +519,7 @@ class IssueReport extends Model
         $data = $this->toPublicArray();
         $data['source'] = $this->getSource();
         $data['allocated_budget'] = $this->allocated_budget;
+        $data['allocated_resources'] = $this->allocated_resources;
         $data['forwarded_to_admin_at'] = $this->forwarded_to_admin_at?->toDateTimeString();
         $data['assigned_to_task_force_at'] = $this->assigned_to_task_force_at?->toDateTimeString();
         $data['resources_allocated_at'] = $this->resources_allocated_at?->toDateTimeString();

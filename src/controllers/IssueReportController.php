@@ -385,7 +385,9 @@ class IssueReportController
                 'assignedAgent.user',
                 'submittedByAgent.user',
                 'comments.user',
-                'statusHistory.changedByUser'
+                'statusHistory.changedByUser',
+                'assessmentReport',
+                'resolutionReport'
             ])->find($args['id']);
 
             if (!$report) {
