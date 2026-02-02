@@ -13,8 +13,7 @@ final class AddSubSectorIdToIssueReports extends AbstractMigration
         if (!$table->hasColumn('sub_sector_id')) {
             $table->addColumn('sub_sector_id', 'integer', [
                 'signed' => false,
-                'null' => true,
-                'after' => 'sector_id' // Assuming sector_id exists, place it after
+                'null' => true
             ])
             ->addForeignKey('sub_sector_id', 'sub_sectors', 'id', [
                 'delete' => 'SET_NULL',

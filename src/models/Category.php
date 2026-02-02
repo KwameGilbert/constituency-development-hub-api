@@ -7,12 +7,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Sector Model
+ * Category Model
  * 
- * Represents a project category/sector (Education, Healthcare, Infrastructure, etc.)
+ * Represents a top-level classification for sectors
+ * (e.g., Development, Social Services, Infrastructure)
  *
  * @property int $id
- * @property int|null $category_id
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property string $name
@@ -25,9 +25,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  */
-class Sector extends Model
+class Category extends Model
 {
-    protected $table = 'sectors';
+    protected $table = 'categories';
     protected $primaryKey = 'id';
     public $incrementing = true;
     public $timestamps = true;
@@ -36,7 +36,6 @@ class Sector extends Model
     const STATUS_INACTIVE = 'inactive';
 
     protected $fillable = [
-        'category_id',
         'created_by',
         'updated_by',
         'name',
@@ -49,7 +48,6 @@ class Sector extends Model
     ];
 
     protected $casts = [
-        'category_id' => 'integer',
         'created_by' => 'integer',
         'updated_by' => 'integer',
         'display_order' => 'integer',
@@ -62,19 +60,9 @@ class Sector extends Model
      | -----------------------------------------------------------------
      */
 
-    public function category()
+    public function sectors()
     {
-        return $this->belongsTo(Category::class, 'category_id');
-    }
-
-    public function projects()
-    {
-        return $this->hasMany(Project::class, 'sector_id');
-    }
-
-    public function subSectors()
-    {
-        return $this->hasMany(SubSector::class, 'sector_id')->orderBy('display_order');
+        return $this->hasMany(Sector::class, 'category_id')->orderBy('display_order');
     }
 
     public function createdBy()
@@ -102,12 +90,12 @@ class Sector extends Model
      | -----------------------------------------------------------------
      */
 
-    public static function findBySlug(string $slug): ?Sector
+    public static function findBySlug(string $slug): ?Category
     {
         return static::where('slug', $slug)->first();
     }
 
-    public static function getActiveSectors()
+    public static function getActiveCategories()
     {
         return static::active()->get();
     }
@@ -122,29 +110,39 @@ class Sector extends Model
         return $this->status === self::STATUS_ACTIVE;
     }
 
-    public function getProjectsCount(): int
+    public function getSectorsCount(): int
     {
-        return $this->projects()->count();
-    }
-
-    public function getOngoingProjectsCount(): int
-    {
-        return $this->projects()->where('status', Project::STATUS_ONGOING)->count();
+        return $this->sectors()->count();
     }
 
     public function toPublicArray(): array
     {
         return [
             'id' => $this->id,
-            'category_id' => $this->category_id,
-            'category_name' => $this->category?->name,
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,
             'icon' => $this->icon,
             'color' => $this->color,
             'display_order' => $this->display_order,
-            'projects_count' => $this->getProjectsCount(),
+            'sectors_count' => $this->getSectorsCount(),
+        ];
+    }
+
+    public function toFullArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'slug' => $this->slug,
+            'description' => $this->description,
+            'icon' => $this->icon,
+            'color' => $this->color,
+            'display_order' => $this->display_order,
+            'status' => $this->status,
+            'sectors_count' => $this->getSectorsCount(),
+            'created_at' => $this->created_at?->toDateTimeString(),
+            'updated_at' => $this->updated_at?->toDateTimeString(),
         ];
     }
 }

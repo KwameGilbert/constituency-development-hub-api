@@ -22,6 +22,10 @@ return function (App $app) {
     $app->get('/v1/sectors', [$controller, 'index']);
     $app->get('/v1/sectors/{slug}', [$controller, 'showBySlug']);
 
+    // Public Sub-sector routes
+    $subSectorController = $app->getContainer()->get(\App\Controllers\SubSectorController::class);
+    $app->get('/v1/sectors/{sectorId:[0-9]+}/sub-sectors', [$subSectorController, 'index']);
+
     // Admin routes (require web_admin role)
     $app->group('/v1/admin/sectors', function ($group) use ($controller) {
         $group->get('', [$controller, 'adminIndex']);
@@ -30,7 +34,7 @@ return function (App $app) {
         $group->put('/reorder', [$controller, 'reorder']);
         $group->put('/{id}', [$controller, 'update']);
         $group->delete('/{id}', [$controller, 'destroy']);
-    })->add(new RoleMiddleware(['web_admin']))->add($authMiddleware);
+    })->add(new RoleMiddleware(['admin', 'super_admin', 'web_admin']))->add($authMiddleware);
 
     // Sub-sector routes (require web_admin role)
     $app->group('/v1/admin', function ($group) use ($app) {

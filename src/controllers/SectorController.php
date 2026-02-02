@@ -123,6 +123,7 @@ class SectorController
 
             $sector = Sector::create([
                 'created_by' => $webAdmin->id ?? null,
+                'category_id' => $data['category_id'] ?? null,
                 'name' => $data['name'],
                 'slug' => $slug,
                 'description' => $data['description'] ?? null,
@@ -161,6 +162,7 @@ class SectorController
 
             $sector->update([
                 'updated_by' => $webAdmin->id ?? null,
+                'category_id' => $data['category_id'] ?? $sector->category_id,
                 'name' => $data['name'] ?? $sector->name,
                 'slug' => $data['slug'] ?? $sector->slug,
                 'description' => $data['description'] ?? $sector->description,

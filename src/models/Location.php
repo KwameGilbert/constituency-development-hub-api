@@ -43,14 +43,10 @@ class Location extends Model
     // Valid location types
     const TYPE_COMMUNITY = 'community';
     const TYPE_SUBURB = 'suburb';
-    const TYPE_COTTAGE = 'cottage';
-    const TYPE_SMALLER_COMMUNITY = 'smaller_community';
 
     const VALID_TYPES = [
         self::TYPE_COMMUNITY,
-        self::TYPE_SUBURB,
-        self::TYPE_COTTAGE,
-        self::TYPE_SMALLER_COMMUNITY
+        self::TYPE_SUBURB
     ];
 
     // Status constants
