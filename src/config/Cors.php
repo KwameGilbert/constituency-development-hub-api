@@ -8,9 +8,30 @@
 
 return [
     // Allowed Origins
+
     // In production, set to specific domains: 'https://yourdomain.com,https://app.yourdomain.com'
     // In development, can use '*' for testing
-    'allowed_origins' => $_SERVER['ALLOWED_ORIGINS'] ?? getenv('ALLOWED_ORIGINS') ?: '*',
+    'allowed_origins' => (function() {
+        $env = $_SERVER['ALLOWED_ORIGINS'] ?? getenv('ALLOWED_ORIGINS') ?: '';
+        $defaults = [
+            'https://kofibenteh.com',
+            'https://admin.kofibenteh.com',
+            'https://www.kofibenteh.com',
+            'https://api.kofibenteh.com',
+            'https://kofibentehafful.com',
+            'https://www.kofibentehafful.com',
+            'https://admin.kofibentehafful.com',
+            'https://agent.kofibentehafful.com',
+            'https://app.kofibentehafful.com'
+        ];
+        
+        if ($env === '*') return '*';
+        
+        $envOrigins = $env ? explode(',', $env) : [];
+        $allOrigins = array_unique(array_merge($envOrigins, $defaults));
+        
+        return implode(',', $allOrigins);
+    })(),
     
     // Allowed Headers
     'allowed_headers' => 'X-Requested-With, Content-Type, Accept, Origin, Authorization, X-HTTP-Method-Override',
