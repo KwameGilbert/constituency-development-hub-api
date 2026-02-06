@@ -172,7 +172,7 @@ class Location extends Model
 
         // Pagination
         $page = (int) ($params['page'] ?? 1);
-        $limit = min((int) ($params['limit'] ?? 20), 100);
+        $limit = min((int) ($params['limit'] ?? 20), 1000);
         $offset = ($page - 1) * $limit;
 
         $total = $query->count();

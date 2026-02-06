@@ -66,6 +66,35 @@ class AgentController
     }
 
     /**
+     * Get agent statistics
+     * GET /api/admin/agents/stats
+     */
+    public function getStatistics(Request $request, Response $response): Response
+    {
+        try {
+            $totalAgents = Agent::count();
+            $activeAgents = Agent::whereHas('user', function ($q) {
+                $q->where('status', 'active');
+            })->count();
+            
+            $inactiveAgents = Agent::whereHas('user', function ($q) {
+                $q->where('status', '!=', 'active');
+            })->count();
+
+            $issuesHandled = Agent::sum('reports_submitted');
+
+            return ResponseHelper::success($response, 'Statistics fetched successfully', [
+                'total_agents' => $totalAgents,
+                'active_agents' => $activeAgents,
+                'inactive_agents' => $inactiveAgents,
+                'issues_handled' => (int) $issuesHandled
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to fetch statistics', 500, $e->getMessage());
+        }
+    }
+
+    /**
      * Get single agent
      * GET /api/admin/agents/{id}
      */
@@ -78,8 +107,33 @@ class AgentController
                 return ResponseHelper::error($response, 'Agent not found', 404);
             }
 
+            // Calculate issue statistics
+            $stats = [
+                'pending' => $agent->submittedReports()
+                    ->whereIn('status', ['submitted', 'under_review'])
+                    ->count(),
+                'resolved' => $agent->submittedReports()
+                    ->where('status', 'resolved')
+                    ->count(),
+                'rejected' => $agent->submittedReports()
+                    ->where('status', 'rejected')
+                    ->count(),
+                'approved' => $agent->submittedReports()
+                    ->where('status', 'approved')
+                    ->count(),
+            ];
+
+            // Get recent issues
+            $recentIssues = $agent->submittedReports()
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get()
+                ->map(fn($issue) => $issue->toPublicArray());
+
             return ResponseHelper::success($response, 'Agent fetched successfully', [
-                'agent' => $agent->getFullProfile()
+                'agent' => $agent->getFullProfile(),
+                'issue_stats' => $stats,
+                'recent_issues' => $recentIssues
             ]);
         } catch (Exception $e) {
             return ResponseHelper::error($response, 'Failed to fetch agent', 500, $e->getMessage());
@@ -133,16 +187,24 @@ class AgentController
                 'first_login' => true,
             ]);
 
+            // Parse assigned_communities if it's a comma-separated string
+            $assignedCommunities = $data['assigned_communities'] ?? null;
+            if (is_string($assignedCommunities)) {
+                $assignedCommunities = array_map('trim', explode(',', $assignedCommunities));
+                // Remove empty strings
+                $assignedCommunities = array_filter($assignedCommunities);
+            }
+
             // Create agent profile
             $agent = Agent::create([
                 'user_id' => $user->id,
                 'agent_code' => $data['agent_code'] ?? Agent::generateAgentCode(),
                 'supervisor_id' => $data['supervisor_id'] ?? null,
-                'assigned_communities' => $data['assigned_communities'] ?? null,
+                'assigned_communities' => !empty($assignedCommunities) ? $assignedCommunities : null,
                 'assigned_location' => $data['assigned_location'] ?? null,
-                'can_submit_reports' => $data['can_submit_reports'] ?? true,
-                'can_collect_data' => $data['can_collect_data'] ?? true,
-                'can_register_residents' => $data['can_register_residents'] ?? false,
+                'can_submit_reports' => isset($data['can_submit_reports']) ? filter_var($data['can_submit_reports'], FILTER_VALIDATE_BOOLEAN) : true,
+                'can_collect_data' => isset($data['can_collect_data']) ? filter_var($data['can_collect_data'], FILTER_VALIDATE_BOOLEAN) : true,
+                'can_register_residents' => isset($data['can_register_residents']) ? filter_var($data['can_register_residents'], FILTER_VALIDATE_BOOLEAN) : false,
                 'profile_image' => $profileImageUrl,
                 'id_type' => $data['id_type'] ?? null,
                 'id_number' => $data['id_number'] ?? null,
@@ -200,14 +262,26 @@ class AgentController
                 }
             }
 
+            // Parse assigned_communities if provided
+            $assignedCommunities = $agent->assigned_communities;
+            if (isset($data['assigned_communities'])) {
+                $rawCommunities = $data['assigned_communities'];
+                if (is_string($rawCommunities)) {
+                    $parsed = array_map('trim', explode(',', $rawCommunities));
+                    $assignedCommunities = array_filter($parsed);
+                } else {
+                    $assignedCommunities = $rawCommunities;
+                }
+            }
+
             // Update agent profile
             $agent->update([
                 'supervisor_id' => $data['supervisor_id'] ?? $agent->supervisor_id,
-                'assigned_communities' => $data['assigned_communities'] ?? $agent->assigned_communities,
+                'assigned_communities' => $assignedCommunities,
                 'assigned_location' => $data['assigned_location'] ?? $agent->assigned_location,
-                'can_submit_reports' => $data['can_submit_reports'] ?? $agent->can_submit_reports,
-                'can_collect_data' => $data['can_collect_data'] ?? $agent->can_collect_data,
-                'can_register_residents' => $data['can_register_residents'] ?? $agent->can_register_residents,
+                'can_submit_reports' => isset($data['can_submit_reports']) ? filter_var($data['can_submit_reports'], FILTER_VALIDATE_BOOLEAN) : $agent->can_submit_reports,
+                'can_collect_data' => isset($data['can_collect_data']) ? filter_var($data['can_collect_data'], FILTER_VALIDATE_BOOLEAN) : $agent->can_collect_data,
+                'can_register_residents' => isset($data['can_register_residents']) ? filter_var($data['can_register_residents'], FILTER_VALIDATE_BOOLEAN) : $agent->can_register_residents,
                 'profile_image' => $profileImageUrl,
                 'id_type' => $data['id_type'] ?? $agent->id_type,
                 'id_number' => $data['id_number'] ?? $agent->id_number,

@@ -31,6 +31,7 @@ return function (App $app) {
     // Admin routes (require web_admin or officer role)
     $app->group('/v1/admin/agents', function ($group) use ($controller) {
         $group->get('', [$controller, 'index']);
+        $group->get('/stats', [$controller, 'getStatistics']);
         $group->get('/{id}', [$controller, 'show']);
         $group->post('', [$controller, 'store']);
         $group->put('/{id}', [$controller, 'update']);
