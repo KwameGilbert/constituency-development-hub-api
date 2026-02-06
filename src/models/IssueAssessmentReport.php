@@ -208,6 +208,7 @@ class IssueAssessmentReport extends Model
             'images' => $this->images,
             'recommendations' => $this->recommendations,
             'status' => $this->status,
+            'review_notes' => $this->review_notes, // Ensure this is exposed
             'created_at' => $this->created_at?->toDateTimeString(),
         ];
     }

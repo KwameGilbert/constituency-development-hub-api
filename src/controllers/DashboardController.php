@@ -50,6 +50,12 @@ class DashboardController
             // Calculate total budget from projects
             $totalBudget = Project::sum('budget') ?? 0;
 
+            // Calculate total budget from issues
+            $totalIssuesBudget = IssueReport::sum('allocated_budget') ?? 0;
+
+            // Grand total budget
+            $grandTotalBudget = $totalBudget + $totalIssuesBudget;
+
             // Users by role
             $usersByRole = [
                 'admin' => User::where('role', 'admin')->count(),
@@ -96,6 +102,8 @@ class DashboardController
                     'active_users' => $activeUsers,
                     'total_projects' => $totalProjects,
                     'total_budget' => (float)$totalBudget,
+                    'total_issues_budget' => (float)$totalIssuesBudget,
+                    'grand_total_budget' => (float)$grandTotalBudget,
                 ],
                 'users_by_role' => $usersByRole,
                 'issues' => $issuesByStatus,

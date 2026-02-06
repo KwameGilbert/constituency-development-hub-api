@@ -954,12 +954,36 @@ class IssueReportController
             switch ($action) {
                 case 'approve':
                     $assessment->approve((int)$user->id, $notes);
+                    // Stay as assessment_submitted or move to resources_allocated? 
+                    // Usually wait for explicit resource allocation.
                     break;
                 case 'reject':
                     $assessment->reject((int)$user->id, $notes);
+                    // Revert issue status so Task Force can see and resubmit
+                    $report->status = IssueReport::STATUS_ASSESSMENT_IN_PROGRESS;
+                    $report->save();
+                    
+                    IssueReportStatusHistory::logChange(
+                        $report->id,
+                        (int)$user->id,
+                        IssueReport::STATUS_ASSESSMENT_SUBMITTED,
+                        IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                        'Assessment rejected: ' . $notes
+                    );
                     break;
                 case 'revision':
                     $assessment->requestRevision((int)$user->id, $notes);
+                    // Revert issue status to allow resubmission
+                    $report->status = IssueReport::STATUS_ASSESSMENT_IN_PROGRESS;
+                    $report->save();
+
+                    IssueReportStatusHistory::logChange(
+                        $report->id,
+                        (int)$user->id,
+                        IssueReport::STATUS_ASSESSMENT_SUBMITTED,
+                        IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                        'Assessment revision requested: ' . $notes
+                    );
                     break;
                 default:
                     return ResponseHelper::error($response, 'Invalid action', 400);

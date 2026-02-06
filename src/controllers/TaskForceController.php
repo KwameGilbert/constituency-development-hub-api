@@ -755,26 +755,50 @@ class TaskForceController
                 }
             }
 
-            // Create assessment report
-            error_log('submitAssessment: Creating assessment report record...');
-            $assessment = IssueAssessmentReport::create([
-                'issue_report_id' => $issue->id,
-                'submitted_by' => $member->id,
-                'assessment_summary' => $data['assessment_summary'],
-                'findings' => $data['findings'] ?? null,
-                'issue_confirmed' => $data['issue_confirmed'] ?? true,
-                'severity' => $data['severity'] ?? IssueAssessmentReport::SEVERITY_MEDIUM,
-                'estimated_cost' => $data['estimated_cost'] ?? null,
-                'estimated_duration' => $data['estimated_duration'] ?? null,
-                'required_resources' => $data['required_resources'] ?? null,
-                'images' => $imagesJson,
-                'documents' => $documentsJson,
-                'location_verified' => $data['location_verified'] ?? null,
-                'gps_coordinates' => $data['gps_coordinates'] ?? null,
-                'recommendations' => $data['recommendations'] ?? null,
-                'status' => IssueAssessmentReport::STATUS_SUBMITTED,
-            ]);
-            error_log('submitAssessment: Assessment report created. ID: ' . $assessment->id);
+            // Check if assessment already exists (e.g. re-submission after rejection)
+            $assessment = IssueAssessmentReport::where('issue_report_id', $issue->id)->first();
+
+            if ($assessment) {
+                error_log('submitAssessment: Updating existing assessment report. ID: ' . $assessment->id);
+                $assessment->update([
+                    'submitted_by' => $member->id,
+                    'assessment_summary' => $data['assessment_summary'],
+                    'findings' => $data['findings'] ?? $assessment->findings,
+                    'issue_confirmed' => $data['issue_confirmed'] ?? $assessment->issue_confirmed,
+                    'severity' => $data['severity'] ?? $assessment->severity,
+                    'estimated_cost' => $data['estimated_cost'] ?? $assessment->estimated_cost,
+                    'estimated_duration' => $data['estimated_duration'] ?? $assessment->estimated_duration,
+                    'required_resources' => $data['required_resources'] ?? $assessment->required_resources,
+                    // If new images provided, replace/merge? For now, we replace if provided.
+                    'images' => $imagesJson ?? $assessment->images,
+                    'documents' => $documentsJson ?? $assessment->documents,
+                    'location_verified' => $data['location_verified'] ?? $assessment->location_verified,
+                    'gps_coordinates' => $data['gps_coordinates'] ?? $assessment->gps_coordinates,
+                    'recommendations' => $data['recommendations'] ?? $assessment->recommendations,
+                    'status' => IssueAssessmentReport::STATUS_SUBMITTED, // Reset to submitted
+                ]);
+            } else {
+                // Create new assessment report
+                error_log('submitAssessment: Creating new assessment report record...');
+                $assessment = IssueAssessmentReport::create([
+                    'issue_report_id' => $issue->id,
+                    'submitted_by' => $member->id,
+                    'assessment_summary' => $data['assessment_summary'],
+                    'findings' => $data['findings'] ?? null,
+                    'issue_confirmed' => $data['issue_confirmed'] ?? true,
+                    'severity' => $data['severity'] ?? IssueAssessmentReport::SEVERITY_MEDIUM,
+                    'estimated_cost' => $data['estimated_cost'] ?? null,
+                    'estimated_duration' => $data['estimated_duration'] ?? null,
+                    'required_resources' => $data['required_resources'] ?? null,
+                    'images' => $imagesJson,
+                    'documents' => $documentsJson,
+                    'location_verified' => $data['location_verified'] ?? null,
+                    'gps_coordinates' => $data['gps_coordinates'] ?? null,
+                    'recommendations' => $data['recommendations'] ?? null,
+                    'status' => IssueAssessmentReport::STATUS_SUBMITTED,
+                ]);
+                error_log('submitAssessment: Assessment report created. ID: ' . $assessment->id);
+            }
 
             // Update issue status
             $issue->markAssessmentSubmitted();

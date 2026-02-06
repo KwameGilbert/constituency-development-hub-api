@@ -190,6 +190,19 @@ class AdminDataController
                     'issueStatusDistribution' => $issuesByStatus,
                     'monthlyTrends' => $monthlyTrends,
                     'categoryDistribution' => $categoryDistribution,
+                    'budgetDistribution' => [
+                        [
+                            'name' => 'Project Budget',
+                            'value' => (float) Project::sum('budget'),
+                            'color' => '#f59e0b', // Amber
+                        ],
+                        [
+                            'name' => 'Issues Budget',
+                            'value' => (float) IssueReport::sum('allocated_budget'),
+                            'color' => '#6366f1', // Indigo
+                        ],
+                    ],
+                    'budgetTrends' => $monthlyTrends, // Using same monthly trends for now, ideally would be separate budget query
                 ],
             ];
 
