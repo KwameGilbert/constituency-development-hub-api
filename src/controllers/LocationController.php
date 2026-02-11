@@ -50,7 +50,7 @@ class LocationController
                 'sort_by' => $params['sort_by'] ?? 'name',
                 'sort_order' => $params['sort_order'] ?? 'asc',
                 'page' => $params['page'] ?? 1,
-                'limit' => $params['limit'] ?? 20
+                'limit' => $params['limit'] ?? 10000
             ]);
 
             $locations = array_map(function ($location) {

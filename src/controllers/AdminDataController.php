@@ -40,39 +40,9 @@ use Carbon\Carbon;
  */
 class AdminDataController
 {
-    /**
-     * Path to the data folder
-     */
-    private string $dataPath;
-
     public function __construct()
     {
-        // Path to the data folder (relative to the project root)
-        $this->dataPath = dirname(__DIR__, 2) . '/data/data/';
-    }
-
-    /**
-     * Load JSON data from a file
-     */
-    private function loadJsonFile(string $filename): ?array
-    {
-        $filePath = $this->dataPath . $filename;
-        
-        if (!file_exists($filePath)) {
-            return null;
-        }
-
-        $content = file_get_contents($filePath);
-        if ($content === false) {
-            return null;
-        }
-
-        $data = json_decode($content, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return null;
-        }
-
-        return $data;
+        // No static data dependencies
     }
 
     /**
@@ -84,17 +54,7 @@ class AdminDataController
     public function getAgents(Request $request, Response $response): Response
     {
         try {
-            // Try to get data from database first
             $agents = Agent::with('user')->get();
-            
-            if ($agents->isEmpty()) {
-                // Fallback to static JSON data
-                $data = $this->loadJsonFile('admin-agents.json');
-                if ($data === null) {
-                    return ResponseHelper::error($response, 'Agents data not found', 404);
-                }
-                return ResponseHelper::success($response, 'Agents data retrieved (static)', $data);
-            }
 
             // Transform database data to match expected format
             $agentsData = $agents->map(function ($agent) {
@@ -206,22 +166,9 @@ class AdminDataController
                 ],
             ];
 
-            // If no data in database, fallback to static JSON
-            if (array_sum(array_column($issuesByStatus, 'value')) === 0) {
-                $staticData = $this->loadJsonFile('admin-analytics-charts.json');
-                if ($staticData !== null) {
-                    return ResponseHelper::success($response, 'Analytics charts data retrieved (static)', $staticData);
-                }
-            }
-
             return ResponseHelper::success($response, 'Analytics charts data retrieved', $data);
         } catch (Exception $e) {
-            // Fallback to static JSON on error
-            $data = $this->loadJsonFile('admin-analytics-charts.json');
-            if ($data === null) {
-                return ResponseHelper::error($response, 'Analytics charts data not found', 404);
-            }
-            return ResponseHelper::success($response, 'Analytics charts data retrieved (static)', $data);
+            return ResponseHelper::error($response, 'Failed to retrieve analytics charts data', 500, $e->getMessage());
         }
     }
 
@@ -280,21 +227,9 @@ class AdminDataController
                 ],
             ];
 
-            // Fallback to static if no data
-            if ($topPerformers->isEmpty()) {
-                $staticData = $this->loadJsonFile('admin-analytics-insights.json');
-                if ($staticData !== null) {
-                    return ResponseHelper::success($response, 'Analytics insights data retrieved (static)', $staticData);
-                }
-            }
-
             return ResponseHelper::success($response, 'Analytics insights data retrieved', $data);
         } catch (Exception $e) {
-            $data = $this->loadJsonFile('admin-analytics-insights.json');
-            if ($data === null) {
-                return ResponseHelper::error($response, 'Analytics insights data not found', 404);
-            }
-            return ResponseHelper::success($response, 'Analytics insights data retrieved (static)', $data);
+            return ResponseHelper::error($response, 'Failed to retrieve analytics insights data', 500, $e->getMessage());
         }
     }
 
@@ -353,11 +288,7 @@ class AdminDataController
 
             return ResponseHelper::success($response, 'Analytics metrics data retrieved', $data);
         } catch (Exception $e) {
-            $data = $this->loadJsonFile('admin-analytics-metrics.json');
-            if ($data === null) {
-                return ResponseHelper::error($response, 'Analytics metrics data not found', 404);
-            }
-            return ResponseHelper::success($response, 'Analytics metrics data retrieved (static)', $data);
+            return ResponseHelper::error($response, 'Failed to retrieve analytics metrics data', 500, $e->getMessage());
         }
     }
 
@@ -387,18 +318,6 @@ class AdminDataController
                 ->limit($limit)
                 ->get();
 
-            if ($announcements->isEmpty()) {
-                // Fallback to static JSON
-                $data = $this->loadJsonFile('admin-announcements.json');
-                if ($data === null) {
-                    return ResponseHelper::success($response, 'No announcements found', [
-                        'announcements' => [],
-                        'pagination' => ['page' => 1, 'limit' => $limit, 'total' => 0, 'total_pages' => 0]
-                    ]);
-                }
-                return ResponseHelper::success($response, 'Announcements data retrieved (static)', $data);
-            }
-
             $data = [
                 'announcements' => $announcements->map(fn($a) => $a->toPublicArray()),
                 'pagination' => [
@@ -411,11 +330,7 @@ class AdminDataController
 
             return ResponseHelper::success($response, 'Announcements data retrieved', $data);
         } catch (Exception $e) {
-            $data = $this->loadJsonFile('admin-announcements.json');
-            if ($data === null) {
-                return ResponseHelper::error($response, 'Announcements data not found', 404);
-            }
-            return ResponseHelper::success($response, 'Announcements data retrieved (static)', $data);
+            return ResponseHelper::error($response, 'Failed to retrieve announcements data', 500, $e->getMessage());
         }
     }
 
@@ -452,15 +367,6 @@ class AdminDataController
                 ->limit($limit)
                 ->get();
 
-            if ($logs->isEmpty()) {
-                // Fallback to static JSON
-                $data = $this->loadJsonFile('admin-audit-logs.json');
-                if ($data === null) {
-                    return ResponseHelper::error($response, 'Audit logs data not found', 404);
-                }
-                return ResponseHelper::success($response, 'Audit logs data retrieved (static)', $data);
-            }
-
             $auditLogs = $logs->map(function ($log) {
                 return [
                     'id' => $log->id,
@@ -485,7 +391,7 @@ class AdminDataController
                 ],
                 'summary' => [
                     'total_logs' => $total,
-                    'success_count' => $total, // Would need proper status tracking
+                    'success_count' => $total,
                     'failed_count' => 0,
                     'warning_count' => 0,
                     'last_updated' => $logs->first()->timestamp ?? null,
@@ -494,11 +400,7 @@ class AdminDataController
 
             return ResponseHelper::success($response, 'Audit logs data retrieved', $data);
         } catch (Exception $e) {
-            $data = $this->loadJsonFile('admin-audit-logs.json');
-            if ($data === null) {
-                return ResponseHelper::error($response, 'Audit logs data not found', 404);
-            }
-            return ResponseHelper::success($response, 'Audit logs data retrieved (static)', $data);
+            return ResponseHelper::error($response, 'Failed to retrieve audit logs data', 500, $e->getMessage());
         }
     }
 
@@ -532,19 +434,6 @@ class AdminDataController
                 ->limit($limit)
                 ->get();
 
-            if ($jobs->isEmpty()) {
-                // Fallback to static JSON
-                $data = $this->loadJsonFile('admin-employment-jobs.json');
-                if ($data === null) {
-                    return ResponseHelper::success($response, 'No employment jobs found', [
-                        'jobs' => [],
-                        'pagination' => ['page' => 1, 'limit' => $limit, 'total' => 0, 'total_pages' => 0],
-                        'statistics' => EmploymentJob::getStatistics(),
-                    ]);
-                }
-                return ResponseHelper::success($response, 'Employment jobs data retrieved (static)', $data);
-            }
-
             $data = [
                 'jobs' => $jobs->map(fn($job) => $job->toPublicArray()),
                 'pagination' => [
@@ -558,11 +447,7 @@ class AdminDataController
 
             return ResponseHelper::success($response, 'Employment jobs data retrieved', $data);
         } catch (Exception $e) {
-            $data = $this->loadJsonFile('admin-employment-jobs.json');
-            if ($data === null) {
-                return ResponseHelper::error($response, 'Employment jobs data not found', 404);
-            }
-            return ResponseHelper::success($response, 'Employment jobs data retrieved (static)', $data);
+            return ResponseHelper::error($response, 'Failed to retrieve employment jobs data', 500, $e->getMessage());
         }
     }
 
@@ -596,19 +481,6 @@ class AdminDataController
                 ->limit($limit)
                 ->get();
 
-            if ($ideas->isEmpty()) {
-                // Fallback to static JSON
-                $data = $this->loadJsonFile('admin-ideas.json');
-                if ($data === null) {
-                    return ResponseHelper::success($response, 'No community ideas found', [
-                        'ideas' => [],
-                        'pagination' => ['page' => 1, 'limit' => $limit, 'total' => 0, 'total_pages' => 0],
-                        'statistics' => CommunityIdea::getStatistics(),
-                    ]);
-                }
-                return ResponseHelper::success($response, 'Ideas data retrieved (static)', $data);
-            }
-
             $data = [
                 'ideas' => $ideas->map(fn($idea) => $idea->toPublicArray()),
                 'pagination' => [
@@ -622,11 +494,7 @@ class AdminDataController
 
             return ResponseHelper::success($response, 'Ideas data retrieved', $data);
         } catch (Exception $e) {
-            $data = $this->loadJsonFile('admin-ideas.json');
-            if ($data === null) {
-                return ResponseHelper::error($response, 'Ideas data not found', 404);
-            }
-            return ResponseHelper::success($response, 'Ideas data retrieved (static)', $data);
+            return ResponseHelper::error($response, 'Failed to retrieve ideas data', 500, $e->getMessage());
         }
     }
 
@@ -721,11 +589,7 @@ class AdminDataController
 
             return ResponseHelper::success($response, 'Metrics data retrieved', $data);
         } catch (Exception $e) {
-            $data = $this->loadJsonFile('admin-metrics.json');
-            if ($data === null) {
-                return ResponseHelper::error($response, 'Metrics data not found', 404);
-            }
-            return ResponseHelper::success($response, 'Metrics data retrieved (static)', $data);
+            return ResponseHelper::error($response, 'Failed to retrieve metrics data', 500, $e->getMessage());
         }
     }
 
@@ -744,15 +608,6 @@ class AdminDataController
                 ->limit($limit)
                 ->get();
 
-            if ($issues->isEmpty()) {
-                // Fallback to static JSON
-                $data = $this->loadJsonFile('admin-recent-issues.json');
-                if ($data === null) {
-                    return ResponseHelper::error($response, 'Recent issues data not found', 404);
-                }
-                return ResponseHelper::success($response, 'Recent issues data retrieved (static)', $data);
-            }
-
             $recentIssues = $issues->map(function ($issue) {
                 return [
                     'id' => $issue->case_id ?? 'ISS-' . str_pad((string) $issue->id, 4, '0', STR_PAD_LEFT),
@@ -770,11 +625,7 @@ class AdminDataController
                 'recentIssues' => $recentIssues,
             ]);
         } catch (Exception $e) {
-            $data = $this->loadJsonFile('admin-recent-issues.json');
-            if ($data === null) {
-                return ResponseHelper::error($response, 'Recent issues data not found', 404);
-            }
-            return ResponseHelper::success($response, 'Recent issues data retrieved (static)', $data);
+            return ResponseHelper::error($response, 'Failed to retrieve recent issues data', 500, $e->getMessage());
         }
     }
 
@@ -801,27 +652,16 @@ class AdminDataController
     /**
      * Get all admin dashboard data combined
      * GET /v1/admin/data/all
+     * 
+     * @deprecated Use individual endpoints instead for real-time database data
      */
     public function getAllData(Request $request, Response $response): Response
     {
-        try {
-            $data = [
-                'agents' => $this->loadJsonFile('admin-agents.json'),
-                'analyticsCharts' => $this->loadJsonFile('admin-analytics-charts.json'),
-                'analyticsInsights' => $this->loadJsonFile('admin-analytics-insights.json'),
-                'analyticsMetrics' => $this->loadJsonFile('admin-analytics-metrics.json'),
-                'announcements' => $this->loadJsonFile('admin-announcements.json'),
-                'auditLogs' => $this->loadJsonFile('admin-audit-logs.json'),
-                'employmentJobs' => $this->loadJsonFile('admin-employment-jobs.json'),
-                'ideas' => $this->loadJsonFile('admin-ideas.json'),
-                'metrics' => $this->loadJsonFile('admin-metrics.json'),
-                'recentIssues' => $this->loadJsonFile('admin-recent-issues.json'),
-            ];
-
-            return ResponseHelper::success($response, 'All admin data retrieved', $data);
-        } catch (Exception $e) {
-            return ResponseHelper::error($response, 'Failed to retrieve admin data', 500, $e->getMessage());
-        }
+        return ResponseHelper::error(
+            $response, 
+            'This endpoint is deprecated. Please use individual data endpoints (e.g., /admin/data/analytics/charts, /admin/data/metrics, etc.)', 
+            410
+        );
     }
 
     /**
