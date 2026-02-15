@@ -177,7 +177,7 @@ class OfficerReportsController
                 'trends' => $trends,
             ]);
         } catch (Exception $e) {
-            return ResponseHelper::error($response, 'Failed to fetch trends data', 500, $e->getMessage());
+            return ResponseHelper::error($response, 'Failed to fetch trends data: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 500, $e->getMessage());
         }
     }
 

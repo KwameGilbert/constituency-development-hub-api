@@ -37,8 +37,16 @@ class UploadService
             'directory' => 'banners',
         ],
         'document' => [
-            'mimes' => ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-            'extensions' => ['pdf', 'doc', 'docx'],
+            'mimes' => [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'text/plain',
+                'text/csv',
+            ],
+            'extensions' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv'],
             'max_size' => 10 * 1024 * 1024, // 10MB
             'directory' => 'documents',
         ],
@@ -320,6 +328,21 @@ class UploadService
     public function getAllowedTypes(string $type): array
     {
         return $this->fileTypes[$type] ?? [];
+    }
+
+    /**
+     * Detect a file type key from a given MIME type
+     * Returns the matching file type key (image, document, video, etc.) or null
+     */
+    public function detectTypeFromMime(string $mime): ?string
+    {
+        foreach ($this->fileTypes as $typeKey => $config) {
+            if (isset($config['mimes']) && in_array($mime, $config['mimes'])) {
+                return $typeKey;
+            }
+        }
+
+        return null;
     }
 
     /**

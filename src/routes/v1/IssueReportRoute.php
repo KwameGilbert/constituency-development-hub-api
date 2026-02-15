@@ -25,11 +25,15 @@ return function (App $app) {
     // Agent routes (require agent role)
     $app->group('/v1/agent/issues', function ($group) use ($controller) {
         $group->post('', [$controller, 'agentSubmit']);
+        $group->put('/{id}', [$controller, 'agentUpdate']);
+        $group->delete('/{id}', [$controller, 'agentDelete']);
     })->add(new RoleMiddleware(['agent']))->add($authMiddleware);
 
     // Officer routes (require officer role)
     $app->group('/v1/officer/issues', function ($group) use ($controller) {
         $group->post('', [$controller, 'officerSubmit']);
+        $group->put('/{id}', [$controller, 'officerUpdate']);
+        $group->delete('/{id}', [$controller, 'officerDelete']);
         $group->put('/{id}/forward', [$controller, 'officerForward']);
     })->add(new RoleMiddleware(['officer']))->add($authMiddleware);
 

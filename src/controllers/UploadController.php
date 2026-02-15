@@ -31,7 +31,8 @@ class UploadController
             $uploadedFile = $uploadedFiles['file'] ?? null;
             $data = $request->getParsedBody() ?? [];
             $folder = $data['folder'] ?? null;
-            $type = $data['type'] ?? 'image'; // Default to image if not specified
+            $explicitType = $data['type'] ?? null;
+            $type = $explicitType ?? 'image'; // Default to image if not specified
 
             if (!$uploadedFile instanceof UploadedFileInterface) {
                 return ResponseHelper::error($response, 'No file uploaded', 400);
@@ -39,6 +40,15 @@ class UploadController
 
             if ($uploadedFile->getError() !== UPLOAD_ERR_OK) {
                 return ResponseHelper::error($response, 'File upload error: ' . $uploadedFile->getError(), 400);
+            }
+
+            // If the client didn't explicitly provide a type, try to detect it from the MIME
+            $mime = $uploadedFile->getClientMediaType();
+            if (!$explicitType) {
+                $detected = $this->uploadService->detectTypeFromMime($mime);
+                if ($detected) {
+                    $type = $detected;
+                }
             }
 
             $url = $this->uploadService->uploadFile($uploadedFile, $type, $folder);

@@ -19,10 +19,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Exception;
 use Carbon\Carbon;
 
-// Helper function for current time
-function now(): Carbon {
-    return Carbon::now();
-}
+
 
 /**
  * DashboardController
@@ -91,7 +88,7 @@ class DashboardController
             ];
 
             // Recent activity stats (last 30 days)
-            $thirtyDaysAgo = now()->subDays(30);
+            $thirtyDaysAgo = Carbon::now()->subDays(30);
             $recentIssues = IssueReport::where('created_at', '>=', $thirtyDaysAgo)->count();
             $recentProjects = Project::where('created_at', '>=', $thirtyDaysAgo)->count();
             $recentUsers = User::where('created_at', '>=', $thirtyDaysAgo)->count();
@@ -144,7 +141,7 @@ class DashboardController
                 ->where('status', 'resolved')->count();
 
             // Performance metrics (this month)
-            $startOfMonth = now()->startOfMonth();
+            $startOfMonth = Carbon::now()->startOfMonth();
             $issuesReviewedThisMonth = IssueReport::where('assigned_officer_id', $officer->id)
                 ->where('updated_at', '>=', $startOfMonth)
                 ->whereIn('status', ['in_progress', 'resolved', 'closed'])
@@ -154,8 +151,8 @@ class DashboardController
             $avgReviewTimeHours = 6.5; // Default placeholder, can be calculated from status history
 
             // Team info - get agents supervised by this officer
-            $totalAgents = Agent::where('assigned_officer_id', $officer->id)->count();
-            $activeAgents = Agent::where('assigned_officer_id', $officer->id)
+            $totalAgents = Agent::where('supervisor_id', $officer->id)->count();
+            $activeAgents = Agent::where('supervisor_id', $officer->id)
                 ->whereHas('user', function ($q) {
                     $q->where('status', 'active');
                 })->count();
@@ -177,7 +174,7 @@ class DashboardController
                 ]
             ]);
         } catch (Exception $e) {
-            return ResponseHelper::error($response, 'Failed to retrieve officer dashboard statistics', 500, $e->getMessage());
+            return ResponseHelper::error($response, 'Failed to retrieve officer dashboard statistics: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 500, $e->getTraceAsString());
         }
     }
 
@@ -217,7 +214,7 @@ class DashboardController
                 ->whereIn('status', [IssueReport::STATUS_RESOLVED, IssueReport::STATUS_CLOSED])->count();
 
             // Performance metrics (this month)
-            $startOfMonth = now()->startOfMonth();
+            $startOfMonth = Carbon::now()->startOfMonth();
             $issuesHandledThisMonth = IssueReport::where('submitted_by_agent_id', $agent->id)
                 ->where('created_at', '>=', $startOfMonth)
                 ->count();
@@ -284,7 +281,7 @@ class DashboardController
             )->whereIn('status', ['assigned', 'in_progress'])->count();
 
             // Team performance (this month)
-            $startOfMonth = now()->startOfMonth();
+            $startOfMonth = Carbon::now()->startOfMonth();
             $assignmentsCompletedThisMonth = IssueReport::where('assigned_task_force_id', $taskForce->id)
                 ->where('updated_at', '>=', $startOfMonth)
                 ->whereIn('status', ['resolved', 'closed'])
