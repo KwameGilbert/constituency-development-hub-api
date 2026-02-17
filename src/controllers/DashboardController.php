@@ -128,32 +128,75 @@ class DashboardController
             $officer = Officer::where('user_id', $requestUser->id)->first();
 
             if (!$officer) {
-                return ResponseHelper::error($response, 'Officer profile not found', 404);
+                // Auto-create officer profile if missing (e.g. user created via SQL import or admin panel)
+                try {
+                    $officer = Officer::create([
+                        'user_id' => $requestUser->id,
+                        'employee_id' => Officer::generateEmployeeId(),
+                        'title' => 'Officer',
+                        'department' => 'Operations',
+                        'can_manage_projects' => true,
+                        'can_manage_reports' => true,
+                        'can_manage_events' => false,
+                        'can_publish_content' => false,
+                    ]);
+                } catch (Exception $createEx) {
+                    // If auto-creation fails, return empty stats gracefully
+                    return ResponseHelper::success($response, 'Officer dashboard statistics (No Profile)', [
+                        'my_issues' => [
+                            'total' => 0,
+                            'pending_review' => 0,
+                            'in_progress' => 0,
+                            'resolved' => 0,
+                        ],
+                        'performance' => [
+                            'average_review_time_hours' => 0,
+                            'issues_reviewed_this_month' => 0,
+                        ],
+                        'team' => [
+                            'total_agents' => 0,
+                            'active_agents' => 0,
+                        ]
+                    ]);
+                }
             }
 
-            // Get issues assigned to this officer for review
-            $myIssuesTotal = IssueReport::where('assigned_officer_id', $officer->id)->count();
-            $pendingReview = IssueReport::where('assigned_officer_id', $officer->id)
-                ->where('status', 'pending_review')->count();
-            $inProgress = IssueReport::where('assigned_officer_id', $officer->id)
-                ->where('status', 'in_progress')->count();
-            $resolved = IssueReport::where('assigned_officer_id', $officer->id)
-                ->where('status', 'resolved')->count();
+            // Get all issues (matching OfficerReportsController scope)
+            $myIssuesTotal = IssueReport::count();
+            $pendingReview = IssueReport::whereIn('status', [
+                IssueReport::STATUS_SUBMITTED,
+                IssueReport::STATUS_UNDER_OFFICER_REVIEW
+            ])->count();
+            $inProgress = IssueReport::whereIn('status', [
+                IssueReport::STATUS_FORWARDED_TO_ADMIN,
+                IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE,
+                IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                IssueReport::STATUS_ASSESSMENT_SUBMITTED,
+                IssueReport::STATUS_RESOURCES_ALLOCATED,
+                IssueReport::STATUS_RESOLUTION_IN_PROGRESS,
+                IssueReport::STATUS_RESOLUTION_SUBMITTED,
+            ])->count();
+            $resolved = IssueReport::whereIn('status', [
+                IssueReport::STATUS_RESOLVED,
+                IssueReport::STATUS_CLOSED
+            ])->count();
 
             // Performance metrics (this month)
             $startOfMonth = Carbon::now()->startOfMonth();
-            $issuesReviewedThisMonth = IssueReport::where('assigned_officer_id', $officer->id)
-                ->where('updated_at', '>=', $startOfMonth)
+            $issuesReviewedThisMonth = IssueReport::where('updated_at', '>=', $startOfMonth)
                 ->whereIn('status', ['in_progress', 'resolved', 'closed'])
                 ->count();
 
-            // Average review time (in hours) - approximate calculation
-            $avgReviewTimeHours = 6.5; // Default placeholder, can be calculated from status history
+            // Average review time (in hours) - calculate from actual data
+            $avgReviewTime = IssueReport::whereNotNull('resolved_at')
+                ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) as avg_hours')
+                ->first()
+                ->avg_hours;
+            $avgReviewTimeHours = $avgReviewTime ? round((float)$avgReviewTime, 1) : 0;
 
-            // Team info - get agents supervised by this officer
-            $totalAgents = Agent::where('supervisor_id', $officer->id)->count();
-            $activeAgents = Agent::where('supervisor_id', $officer->id)
-                ->whereHas('user', function ($q) {
+            // Team info - get all agents
+            $totalAgents = Agent::count();
+            $activeAgents = Agent::whereHas('user', function ($q) {
                     $q->where('status', 'active');
                 })->count();
 

@@ -122,9 +122,9 @@ class AuthController
             case User::ROLE_OFFICER:
                 Officer::create([
                     'user_id' => $user->id,
+                    'employee_id' => $data['employee_id'] ?? Officer::generateEmployeeId(),
                     'department' => $data['department'] ?? null,
-                    'position' => $data['position'] ?? null,
-                    'employee_id' => $data['employee_id'] ?? null,
+                    'title' => $data['position'] ?? $data['title'] ?? null,
                 ]);
                 break;
 
