@@ -17,8 +17,9 @@ use Exception;
  * PasswordResetController
  * 
  * Handles password reset functionality:
- * - Request password reset (send email)
- * - Verify token and reset password
+ * - Request password reset OTP (send email)
+ * - Verify OTP
+ * - Reset password with verified OTP
  */
 class PasswordResetController
 {
@@ -32,7 +33,7 @@ class PasswordResetController
     }
 
     /**
-     * Request password reset (send email)
+     * Request password reset OTP (send email)
      * POST /auth/password/forgot
      */
     public function requestReset(Request $request, Response $response): Response
@@ -51,27 +52,27 @@ class PasswordResetController
             if (!$user) {
                 return ResponseHelper::success(
                     $response, 
-                    'If that email exists, a password reset link has been sent',
+                    'If that email exists, a password reset code has been sent',
                     []
                 );
             }
 
-            // Generate reset token
-            $plainToken = bin2hex(random_bytes(32));
-            $tokenHash = hash('sha256', $plainToken);
+            // Generate 6-digit OTP
+            $otp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $otpHash = hash('sha256', $otp);
 
             // Delete old tokens for this email
             PasswordReset::deleteForEmail($user->email);
 
-            // Create new token
+            // Create new OTP token (expires in 15 minutes via created_at check)
             PasswordReset::create([
                 'email' => $user->email,
-                'token' => $tokenHash,
+                'token' => $otpHash,
                 'created_at' => date('Y-m-d H:i:s')
             ]);
 
-            // Send email with token
-            $emailSent = $this->emailService->sendPasswordResetEmail($user, $plainToken);
+            // Send email with OTP
+            $emailSent = $this->emailService->sendPasswordResetOTPEmail($user, $otp);
 
             // Log audit event
             $this->authService->logAuditEvent(
@@ -82,13 +83,43 @@ class PasswordResetController
 
             return ResponseHelper::success(
                 $response, 
-                'If that email exists, a password reset link has been sent',
+                'If that email exists, a password reset code has been sent',
                 []
             );
 
         } catch (Exception $e) {
             error_log("Password reset request error: " . $e->getMessage());
             return ResponseHelper::error($response, 'Password reset request failed', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Verify OTP without resetting password
+     * POST /auth/password/verify-otp
+     */
+    public function verifyOTP(Request $request, Response $response): Response
+    {
+        try {
+            $data = $request->getParsedBody();
+
+            if (empty($data['email']) || empty($data['otp'])) {
+                return ResponseHelper::error($response, 'Email and OTP are required', 400);
+            }
+
+            // Find valid token (OTP is stored as hashed token)
+            $resetToken = PasswordReset::findValidToken($data['email'], $data['otp']);
+
+            if (!$resetToken) {
+                return ResponseHelper::error($response, 'Invalid or expired OTP', 400);
+            }
+
+            return ResponseHelper::success($response, 'OTP verified successfully', [
+                'verified' => true,
+            ]);
+
+        } catch (Exception $e) {
+            error_log("OTP verification error: " . $e->getMessage());
+            return ResponseHelper::error($response, 'OTP verification failed', 500, $e->getMessage());
         }
     }
 
@@ -102,17 +133,18 @@ class PasswordResetController
             $data = $request->getParsedBody();
             $metadata = $this->getRequestMetadata($request);
             
-            // Validate input
-            if (empty($data['email']) || empty($data['token']) || empty($data['password'])) {
-                return ResponseHelper::error($response, 'Email, token, and new password are required', 400);
+            // Validate input - accept both 'token' and 'otp' field names
+            $otp = $data['otp'] ?? $data['token'] ?? null;
+            if (empty($data['email']) || empty($otp) || empty($data['password'])) {
+                return ResponseHelper::error($response, 'Email, OTP, and new password are required', 400);
             }
 
             if (strlen($data['password']) < 8) {
                 return ResponseHelper::error($response, 'Password must be at least 8 characters', 400);
             }
 
-            // Find valid token
-            $resetToken = PasswordReset::findValidToken($data['email'], $data['token']);
+            // Find valid token (OTP is stored as hashed token)
+            $resetToken = PasswordReset::findValidToken($data['email'], $otp);
 
             if (!$resetToken) {
                 return ResponseHelper::error($response, 'Invalid or expired reset token', 400);

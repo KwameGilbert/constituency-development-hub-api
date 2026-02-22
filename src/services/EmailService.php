@@ -5,49 +5,53 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\User;
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+use Exception;
 
 /**
  * EmailService
  * 
- * Handles all email sending operations using external template files
+ * Handles all email sending operations using PHP's built-in mail() function
+ * and external template files
  */
 class EmailService
 {
-    private PHPMailer $mailer;
     private string $fromEmail;
     private string $fromName;
     private string $templatePath;
 
     public function __construct()
     {
-        $this->mailer = new PHPMailer(true);
-        
-        // Configure SMTP
-        $this->configureSMTP();
-        
         $this->fromEmail = $_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@eventic.com';
         $this->fromName = $_ENV['MAIL_FROM_NAME'] ?? 'Eventic';
-        $this->templatePath = dirname(__DIR__, 2) . '/templates/email/';
+        $this->templatePath = dirname(__DIR__) . '/templates/email/';
     }
 
     /**
-     * Configure SMTP settings
+     * Send an HTML email using PHP's built-in mail() function
      */
-    private function configureSMTP(): void
+    private function sendMail(string $to, string $subject, string $htmlBody, ?string $toName = null, ?string $fromName = null): bool
     {
+        $senderName = $fromName ?? $this->fromName;
+        
+        $headers = [
+            'MIME-Version: 1.0',
+            'Content-type: text/html; charset=UTF-8',
+            "From: {$senderName} <{$this->fromEmail}>",
+            "Reply-To: {$this->fromEmail}",
+            'X-Mailer: PHP/' . phpversion(),
+        ];
+
+        $headerString = implode("\r\n", $headers);
+
         try {
-            $this->mailer->isSMTP();
-            $this->mailer->Host = $_ENV['MAIL_HOST'] ?? 'smtp.gmail.com';
-            $this->mailer->SMTPAuth = true;
-            $this->mailer->Username = $_ENV['MAIL_USERNAME'] ?? 'eventic@gmail.com';
-            $this->mailer->Password = $_ENV['MAIL_PASSWORD'] ?? 'eventic123';
-            $this->mailer->SMTPSecure = $_ENV['MAIL_ENCRYPTION'] ?? 'tls';
-            $this->mailer->Port = (int)($_ENV['MAIL_PORT'] ?? 587);
-            $this->mailer->CharSet = 'UTF-8';
+            $result = mail($to, $subject, $htmlBody, $headerString);
+            if (!$result) {
+                error_log("mail() returned false for recipient: {$to}, subject: {$subject}");
+            }
+            return $result;
         } catch (Exception $e) {
-            error_log('SMTP configuration error: ' . $e->getMessage());
+            error_log("mail() exception for {$to}: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -192,16 +196,7 @@ class EmailService
                 return false;
             }
 
-            $this->mailer->clearAddresses();
-            $this->mailer->setFrom($this->fromEmail, $this->fromName);
-            $this->mailer->addAddress($user->email, $user->name);
-            
-            $this->mailer->isHTML(true);
-            $this->mailer->Subject = $email['subject'];
-            $this->mailer->Body = $email['body'];
-            
-            $this->mailer->send();
-            return true;
+            return $this->sendMail($user->email, $email['subject'], $email['body'], $user->name);
 
         } catch (Exception $e) {
             error_log('Welcome email error: ' . $e->getMessage());
@@ -226,16 +221,7 @@ class EmailService
                 return false;
             }
 
-            $this->mailer->clearAddresses();
-            $this->mailer->setFrom($this->fromEmail, $this->fromName);
-            $this->mailer->addAddress($user->email, $user->name);
-            
-            $this->mailer->isHTML(true);
-            $this->mailer->Subject = $email['subject'];
-            $this->mailer->Body = $email['body'];
-            
-            $this->mailer->send();
-            return true;
+            return $this->sendMail($user->email, $email['subject'], $email['body'], $user->name);
 
         } catch (Exception $e) {
             error_log('Verification email error: ' . $e->getMessage());
@@ -262,19 +248,35 @@ class EmailService
                 return false;
             }
 
-            $this->mailer->clearAddresses();
-            $this->mailer->setFrom($this->fromEmail, $this->fromName);
-            $this->mailer->addAddress($user->email, $user->name);
-            
-            $this->mailer->isHTML(true);
-            $this->mailer->Subject = $email['subject'];
-            $this->mailer->Body = $email['body'];
-            
-            $this->mailer->send();
-            return true;
+            return $this->sendMail($user->email, $email['subject'], $email['body'], $user->name);
 
         } catch (Exception $e) {
             error_log('Password reset email error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Send password reset OTP email
+     */
+    public function sendPasswordResetOTPEmail(User $user, string $otp): bool
+    {
+        try {
+            $email = $this->buildEmailFromTemplate('password_reset_otp', [
+                'user_name' => htmlspecialchars($user->name),
+                'user_email' => htmlspecialchars($user->email),
+                'otp' => $otp,
+            ]);
+            
+            if (!$email) {
+                error_log('Failed to build password reset OTP email template');
+                return false;
+            }
+
+            return $this->sendMail($user->email, $email['subject'], $email['body'], $user->name);
+
+        } catch (Exception $e) {
+            error_log('Password reset OTP email error: ' . $e->getMessage());
             return false;
         }
     }
@@ -296,16 +298,7 @@ class EmailService
                 return false;
             }
 
-            $this->mailer->clearAddresses();
-            $this->mailer->setFrom($this->fromEmail, $this->fromName);
-            $this->mailer->addAddress($user->email, $user->name);
-            
-            $this->mailer->isHTML(true);
-            $this->mailer->Subject = $email['subject'];
-            $this->mailer->Body = $email['body'];
-            
-            $this->mailer->send();
-            return true;
+            return $this->sendMail($user->email, $email['subject'], $email['body'], $user->name);
 
         } catch (Exception $e) {
             error_log('Password changed email error: ' . $e->getMessage());
@@ -319,17 +312,7 @@ class EmailService
     public function send(string $to, string $subject, string $body, ?string $fromName = null): bool
     {
         try {
-            $this->mailer->clearAddresses();
-            $this->mailer->setFrom($this->fromEmail, $fromName ?? $this->fromName);
-            $this->mailer->addAddress($to);
-            
-            $this->mailer->isHTML(true);
-            $this->mailer->Subject = $subject;
-            $this->mailer->Body = $body;
-            
-            $this->mailer->send();
-            return true;
-
+            return $this->sendMail($to, $subject, $body, null, $fromName);
         } catch (Exception $e) {
             error_log('Email send error: ' . $e->getMessage());
             return false;
@@ -355,16 +338,7 @@ class EmailService
                 return false;
             }
 
-            $this->mailer->clearAddresses();
-            $this->mailer->setFrom($this->fromEmail, $this->fromName);
-            $this->mailer->addAddress($toEmail, $toName);
-            
-            $this->mailer->isHTML(true);
-            $this->mailer->Subject = $email['subject'];
-            $this->mailer->Body = $email['body'];
-            
-            $this->mailer->send();
-            return true;
+            return $this->sendMail($toEmail, $email['subject'], $email['body'], $toName);
 
         } catch (Exception $e) {
             error_log("Template email error ({$templateName}): " . $e->getMessage());
@@ -442,17 +416,11 @@ class EmailService
             
             error_log('Sending to: ' . $recipientEmail);
 
-            $this->mailer->clearAddresses();
-            $this->mailer->setFrom($this->fromEmail, $this->fromName);
-            $this->mailer->addAddress($recipientEmail, $recipientName);
-            
-            $this->mailer->isHTML(true);
-            $this->mailer->Subject = $email['subject'];
-            $this->mailer->Body = $email['body'];
-            
-            $this->mailer->send();
-            error_log('=== TICKET CONFIRMATION EMAIL SENT SUCCESSFULLY ===');
-            return true;
+            $result = $this->sendMail($recipientEmail, $email['subject'], $email['body'], $recipientName);
+            if ($result) {
+                error_log('=== TICKET CONFIRMATION EMAIL SENT SUCCESSFULLY ===');
+            }
+            return $result;
 
         } catch (Exception $e) {
             error_log('Ticket confirmation email error: ' . $e->getMessage());
