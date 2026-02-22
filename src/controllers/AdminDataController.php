@@ -110,12 +110,32 @@ class AdminDataController
     {
         try {
             // Try to generate from database
+            // Use actual database ENUM status values for accurate distribution
             $issuesByStatus = [
-                ['name' => 'Resolved', 'value' => IssueReport::where('status', 'resolved')->count(), 'color' => '#10b981'],
-                ['name' => 'In Progress', 'value' => IssueReport::where('status', 'in_progress')->count(), 'color' => '#f59e0b'],
-                ['name' => 'Pending', 'value' => IssueReport::whereIn('status', ['pending', 'pending_review'])->count(), 'color' => '#3b82f6'],
-                ['name' => 'New', 'value' => IssueReport::where('status', 'submitted')->count(), 'color' => '#ef4444'],
+                ['name' => 'Resolved', 'value' => IssueReport::whereIn('status', [
+                    IssueReport::STATUS_RESOLVED,
+                    IssueReport::STATUS_CLOSED,
+                ])->count(), 'color' => '#10b981'],
+                ['name' => 'In Progress', 'value' => IssueReport::whereIn('status', [
+                    IssueReport::STATUS_FORWARDED_TO_ADMIN,
+                    IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE,
+                    IssueReport::STATUS_ASSESSMENT_IN_PROGRESS,
+                    IssueReport::STATUS_ASSESSMENT_SUBMITTED,
+                    IssueReport::STATUS_RESOURCES_ALLOCATED,
+                    IssueReport::STATUS_RESOLUTION_IN_PROGRESS,
+                    IssueReport::STATUS_RESOLUTION_SUBMITTED,
+                ])->count(), 'color' => '#f59e0b'],
+                ['name' => 'Pending', 'value' => IssueReport::whereIn('status', [
+                    IssueReport::STATUS_UNDER_OFFICER_REVIEW,
+                ])->count(), 'color' => '#3b82f6'],
+                ['name' => 'New', 'value' => IssueReport::where('status', IssueReport::STATUS_SUBMITTED)->count(), 'color' => '#ef4444'],
+                ['name' => 'Rejected', 'value' => IssueReport::where('status', IssueReport::STATUS_REJECTED)->count(), 'color' => '#6b7280'],
             ];
+
+            // Filter out statuses with zero count to keep the chart clean
+            $issuesByStatus = array_values(array_filter($issuesByStatus, function ($item) {
+                return $item['value'] > 0;
+            }));
 
             // Monthly trends (last 6 months)
             $monthlyTrends = [];
