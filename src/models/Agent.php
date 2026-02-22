@@ -488,8 +488,21 @@ class Agent extends Model
     {
         $prefix = 'AGT';
         $year = date('Y');
-        $count = static::whereYear('created_at', $year)->count() + 1;
-        
-        return sprintf('%s-%s-%04d', $prefix, $year, $count);
+        $codePrefix = sprintf('%s-%s-', $prefix, $year);
+
+        $maxSequence = static::query()
+            ->where('agent_code', 'like', $codePrefix . '%')
+            ->selectRaw("MAX(CAST(SUBSTRING_INDEX(agent_code, '-', -1) AS UNSIGNED)) as max_sequence")
+            ->value('max_sequence');
+
+        $nextSequence = ((int) $maxSequence) + 1;
+        $candidate = sprintf('%s%04d', $codePrefix, $nextSequence);
+
+        while (static::where('agent_code', $candidate)->exists()) {
+            $nextSequence++;
+            $candidate = sprintf('%s%04d', $codePrefix, $nextSequence);
+        }
+
+        return $candidate;
     }
 }

@@ -10,6 +10,7 @@ use App\Models\Officer;
 use App\Helper\ResponseHelper;
 use App\Services\AuthService;
 use App\Services\UploadService;
+use Illuminate\Database\QueryException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\UploadedFileInterface;
@@ -195,10 +196,13 @@ class AgentController
                 $assignedCommunities = array_filter($assignedCommunities);
             }
 
-            // Create agent profile
-            $agent = Agent::create([
+            $providedAgentCode = isset($data['agent_code']) ? trim((string) $data['agent_code']) : null;
+            if (!empty($providedAgentCode) && Agent::where('agent_code', $providedAgentCode)->exists()) {
+                return ResponseHelper::error($response, 'Agent code already exists', 400);
+            }
+
+            $agentPayload = [
                 'user_id' => $user->id,
-                'agent_code' => $data['agent_code'] ?? Agent::generateAgentCode(),
                 'supervisor_id' => $data['supervisor_id'] ?? null,
                 'assigned_communities' => !empty($assignedCommunities) ? $assignedCommunities : null,
                 'assigned_location' => $data['assigned_location'] ?? null,
@@ -212,7 +216,37 @@ class AgentController
                 'address' => $data['address'] ?? null,
                 'emergency_contact_name' => $data['emergency_contact_name'] ?? null,
                 'emergency_contact_phone' => $data['emergency_contact_phone'] ?? null,
-            ]);
+            ];
+
+            $agent = null;
+            $lastAgentCreateError = null;
+            $maxAttempts = !empty($providedAgentCode) ? 1 : 5;
+
+            for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+                $candidateAgentCode = !empty($providedAgentCode) ? $providedAgentCode : Agent::generateAgentCode();
+
+                try {
+                    $agent = Agent::create(array_merge($agentPayload, [
+                        'agent_code' => $candidateAgentCode,
+                    ]));
+                    $lastAgentCreateError = null;
+                    break;
+                } catch (QueryException $queryException) {
+                    if (empty($providedAgentCode) && $this->isDuplicateAgentCodeException($queryException)) {
+                        $lastAgentCreateError = $queryException;
+                        continue;
+                    }
+                    throw $queryException;
+                }
+            }
+
+            if (!$agent) {
+                $user->delete();
+                if ($lastAgentCreateError) {
+                    throw $lastAgentCreateError;
+                }
+                throw new Exception('Failed to allocate unique agent code');
+            }
 
             return ResponseHelper::success($response, 'Agent created successfully', [
                 'agent' => $agent->getFullProfile(),
@@ -584,6 +618,18 @@ class AgentController
         } catch (Exception $e) {
             return ResponseHelper::error($response, 'Failed to change password', 500, $e->getMessage());
         }
+    }
+
+    /**
+     * Check if query exception is a duplicate agent_code constraint error.
+     */
+    private function isDuplicateAgentCodeException(QueryException $exception): bool
+    {
+        $message = $exception->getMessage();
+
+        return str_contains($message, 'SQLSTATE[23000]')
+            && str_contains($message, 'Duplicate entry')
+            && str_contains($message, 'agent_code');
     }
 
     /**
