@@ -23,6 +23,8 @@ return function (App $app) {
     $app->group('/v1/admin/dashboard', function ($group) use ($controller) {
         // GET /v1/admin/dashboard/stats - Get admin dashboard statistics
         $group->get('/stats', [$controller, 'adminStats']);
+        // GET /v1/admin/dashboard/finance - Get finance overview data
+        $group->get('/finance', [$controller, 'financeOverview']);
     })->add(new RoleMiddleware(['admin', 'web_admin']))->add($authMiddleware);
 
     // Officer dashboard routes (require officer role)

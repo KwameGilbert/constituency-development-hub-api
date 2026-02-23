@@ -9,6 +9,8 @@ use App\Models\Agent;
 use App\Models\Officer;
 use App\Models\TaskForce;
 use App\Models\IssueReport;
+use App\Models\IssueAssessmentReport;
+use App\Models\IssueResolutionReport;
 use App\Models\Project;
 use App\Models\BlogPost;
 use App\Models\ConstituencyEvent;
@@ -352,6 +354,101 @@ class DashboardController
             ]);
         } catch (Exception $e) {
             return ResponseHelper::error($response, 'Failed to retrieve task force dashboard statistics', 500, $e->getMessage());
+        }
+    }
+
+    /**
+     * Get finance overview data
+     * GET /v1/admin/dashboard/finance
+     *
+     * Returns all projects with budget/spent and all issues with
+     * allocated_budget, assessment estimated_cost, and resolution actual_cost.
+     */
+    public function financeOverview(Request $request, Response $response): Response
+    {
+        try {
+            // --- Projects with financial data ---
+            $projects = Project::with('sector')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($project) {
+                    return [
+                        'id' => $project->id,
+                        'title' => $project->title,
+                        'slug' => $project->slug,
+                        'location' => $project->location,
+                        'status' => $project->status,
+                        'progress_percent' => $project->progress_percent,
+                        'budget' => (float)($project->budget ?? 0),
+                        'spent' => (float)($project->spent ?? 0),
+                        'start_date' => $project->start_date,
+                        'end_date' => $project->end_date,
+                        'sector' => $project->sector ? [
+                            'id' => $project->sector->id,
+                            'name' => $project->sector->name,
+                        ] : null,
+                        'contractor' => $project->contractor,
+                        'created_at' => $project->created_at?->toDateTimeString(),
+                    ];
+                });
+
+            // --- Issues with financial data (eager-load assessment + resolution) ---
+            $issues = IssueReport::with(['assessmentReport', 'resolutionReport'])
+                ->whereNotIn('status', [
+                    IssueReport::STATUS_SUBMITTED,
+                    IssueReport::STATUS_UNDER_OFFICER_REVIEW,
+                ])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($issue) {
+                    $allocatedBudget = (float)($issue->allocated_budget ?? 0);
+                    $estimatedCost = 0;
+                    $actualCost = 0;
+
+                    if ($issue->assessmentReport) {
+                        $estimatedCost = (float)($issue->assessmentReport->estimated_cost ?? 0);
+                    }
+                    if ($issue->resolutionReport) {
+                        $actualCost = (float)($issue->resolutionReport->actual_cost ?? 0);
+                    }
+
+                    return [
+                        'id' => $issue->id,
+                        'case_id' => $issue->case_id,
+                        'title' => $issue->title,
+                        'category' => $issue->category,
+                        'location' => $issue->location,
+                        'status' => $issue->status,
+                        'priority' => $issue->priority,
+                        'allocated_budget' => $allocatedBudget,
+                        'estimated_cost' => $estimatedCost,
+                        'actual_cost' => $actualCost,
+                        'created_at' => $issue->created_at?->toDateTimeString(),
+                    ];
+                });
+
+            // --- Summary totals ---
+            $projectsTotalBudget = $projects->sum('budget');
+            $projectsTotalSpent = $projects->sum('spent');
+            $issuesTotalAllocated = $issues->sum('allocated_budget');
+            $issuesTotalSpent = $issues->sum('actual_cost');
+
+            return ResponseHelper::success($response, 'Finance overview fetched successfully', [
+                'projects' => $projects->toArray(),
+                'issues' => $issues->toArray(),
+                'summary' => [
+                    'projects_total_budget' => (float)$projectsTotalBudget,
+                    'projects_total_spent' => (float)$projectsTotalSpent,
+                    'issues_total_allocated' => (float)$issuesTotalAllocated,
+                    'issues_total_spent' => (float)$issuesTotalSpent,
+                    'grand_total_budget' => (float)($projectsTotalBudget + $issuesTotalAllocated),
+                    'grand_total_spent' => (float)($projectsTotalSpent + $issuesTotalSpent),
+                    'projects_count' => $projects->count(),
+                    'issues_count' => $issues->count(),
+                ],
+            ]);
+        } catch (Exception $e) {
+            return ResponseHelper::error($response, 'Failed to fetch finance overview', 500, $e->getMessage());
         }
     }
 }
