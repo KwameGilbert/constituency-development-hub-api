@@ -50,7 +50,7 @@ class DashboardController
             // Calculate total budget from issues
             $totalIssuesBudget = IssueReport::sum('allocated_budget') ?? 0;
 
-            // Grand total budget
+            // Total Funds Available
             $grandTotalBudget = $totalBudget + $totalIssuesBudget;
 
             // Users by role
