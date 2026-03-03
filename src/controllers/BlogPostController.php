@@ -203,6 +203,11 @@ class BlogPostController
             // Fetch the web-admin profile for this user
             $webAdmin = $user ? WebAdmin::findByUserId($user->id) : null;
 
+            $publishedAt = $this->normalizePublishedAt($data['published_at'] ?? null);
+            if (!$publishedAt && ($data['status'] ?? '') === BlogPost::STATUS_PUBLISHED) {
+                $publishedAt = date('Y-m-d H:i:s');
+            }
+
             $post = BlogPost::create([
                 'created_by' => $webAdmin->id ?? null,
                 'title' => $data['title'],
@@ -215,7 +220,7 @@ class BlogPostController
                 'tags' => $data['tags'] ?? null,
                 'status' => $data['status'] ?? BlogPost::STATUS_DRAFT,
                 'is_featured' => $data['is_featured'] ?? false,
-                'published_at' => ($data['status'] ?? '') === BlogPost::STATUS_PUBLISHED ? date('Y-m-d H:i:s') : null,
+                'published_at' => $publishedAt,
             ]);
 
             return ResponseHelper::success($response, 'Blog post created successfully', [
@@ -257,6 +262,12 @@ class BlogPostController
 
             // Handle publishing
             $publishedAt = $post->published_at;
+            if (array_key_exists('published_at', $data)) {
+                $normalizedPublishedAt = $this->normalizePublishedAt($data['published_at']);
+                if ($normalizedPublishedAt) {
+                    $publishedAt = $normalizedPublishedAt;
+                }
+            }
             if (isset($data['status']) && $data['status'] === BlogPost::STATUS_PUBLISHED && !$post->published_at) {
                 $publishedAt = date('Y-m-d H:i:s');
             }
@@ -360,5 +371,22 @@ class BlogPostController
         $slug = preg_replace('/[^a-z0-9\s-]/', '', $slug);
         $slug = preg_replace('/[\s-]+/', '-', $slug);
         return trim($slug, '-');
+    }
+
+    /**
+     * Normalize publish datetime to DB format.
+     */
+    private function normalizePublishedAt(?string $publishedAt): ?string
+    {
+        if (!$publishedAt) {
+            return null;
+        }
+
+        $timestamp = strtotime($publishedAt);
+        if ($timestamp === false) {
+            return null;
+        }
+
+        return date('Y-m-d H:i:s', $timestamp);
     }
 }
