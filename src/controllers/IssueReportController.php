@@ -225,7 +225,7 @@ class IssueReportController
             $dbUser = \App\Models\User::find($userObj->id);
             $userRole = $dbUser ? $dbUser->role : null;
 
-            $query = IssueReport::with(['assignedOfficer.user', 'submittedByAgent.user'])
+            $query = IssueReport::with(['assignedOfficer.user', 'submittedByAgent.user', 'sector', 'subSector', 'mainCommunity', 'smallerCommunity', 'suburb', 'cottage'])
                 ->orderBy('created_at', 'desc');
 
             error_log("IssueReportController::index - User ID: {$userObj->id}, Role: " . ($userRole ?? 'null'));
@@ -252,17 +252,11 @@ class IssueReportController
                 }
             } elseif ($userRole === \App\Models\User::ROLE_OFFICER) {
                 error_log("IssueReportController::index - Entering Officer Block");
-                // Officer Logic
+                // Officer Logic: Officers can see all issues regardless of status
                 if ($status) {
                     $query->where('status', $status);
-                } else {
-                    // Default: Show inbox (Submitted, Under Review) + what they forwarded
-                    $query->whereIn('status', [
-                        IssueReport::STATUS_SUBMITTED,
-                        IssueReport::STATUS_UNDER_OFFICER_REVIEW,
-                        IssueReport::STATUS_FORWARDED_TO_ADMIN
-                    ]);
                 }
+                // No default status filter — officers see all issues
             } elseif ($userRole === \App\Models\User::ROLE_TASK_FORCE) {
                 error_log("IssueReportController::index - Entering Task Force Block");
                 // Task Force Logic (Strict)
@@ -387,15 +381,38 @@ class IssueReportController
                 'comments.user',
                 'statusHistory.changedByUser',
                 'assessmentReport',
-                'resolutionReport'
+                'resolutionReport',
+                'sector',
+                'subSector',
+                'mainCommunity',
+                'smallerCommunity',
+                'suburb',
+                'cottage',
             ])->find($args['id']);
 
             if (!$report) {
                 return ResponseHelper::error($response, 'Issue report not found', 404);
             }
 
+            $reportArray = $report->toArray();
+
+            // Normalize display fields so all dashboards can render consistent details.
+            $reportArray['sector'] = $report->sector?->name ?? ($reportArray['sector'] ?? null);
+            $reportArray['subsector'] = $report->subSector?->name ?? ($reportArray['subsector'] ?? null);
+
+            $reportArray['location'] = $report->mainCommunity?->name ?? ($reportArray['location'] ?? null);
+            $reportArray['smaller_community'] = $report->smallerCommunity?->name ?? ($reportArray['smaller_community'] ?? null);
+            $reportArray['suburb'] = $report->suburb?->name ?? ($reportArray['suburb'] ?? null);
+            $reportArray['cottage'] = $report->cottage?->name ?? ($reportArray['cottage'] ?? null);
+
+            $reportArray['reporter_name'] = $report->reporter_name ?: $report->constituent_name;
+            $reportArray['reporter_phone'] = $report->reporter_phone ?: $report->constituent_contact;
+            $reportArray['reporter_email'] = $report->reporter_email ?: $report->constituent_email;
+            $reportArray['reporter_gender'] = $report->constituent_gender ?? ($reportArray['reporter_gender'] ?? null);
+            $reportArray['reporter_address'] = $report->constituent_address ?? ($reportArray['reporter_address'] ?? null);
+
             return ResponseHelper::success($response, 'Issue report fetched successfully', [
-                'report' => $report->toArray()
+                'report' => $reportArray
             ]);
         } catch (Exception $e) {
             return ResponseHelper::error($response, 'Failed to fetch issue report', 500, $e->getMessage());
@@ -788,12 +805,57 @@ class IssueReportController
             if (!empty($data['sector'])) $extras[] = "Sector: " . $data['sector'];
             if (!empty($data['subsector'])) $extras[] = "Subsector: " . $data['subsector'];
             if (!empty($data['people_affected'])) $extras[] = "People Affected: " . $data['people_affected'];
-            if (!empty($data['constituent_gender'])) $extras[] = "Gender: " . $data['constituent_gender'];
-            if (!empty($data['constituent_address'])) $extras[] = "Address: " . $data['constituent_address'];
-            if (!empty($data['notes'])) $extras[] = "Notes: " . $data['notes'];
+            if (!empty($data['reporter_gender'])) $extras[] = "Gender: " . $data['reporter_gender'];
+            if (!empty($data['reporter_address'])) $extras[] = "Address: " . $data['reporter_address'];
+            if (!empty($data['additional_notes'])) $extras[] = "Notes: " . $data['additional_notes'];
             
             if (!empty($extras)) {
                 $enrichedDescription .= "\n\n-- Additional Details --\n" . implode("\n", $extras);
+            }
+
+            // Resolve sector and sub-sector IDs from names
+            $sectorId = null;
+            $subSectorId = null;
+            if (!empty($data['sector'])) {
+                $sector = \App\Models\Sector::where('name', $data['sector'])->first();
+                $sectorId = $sector ? $sector->id : null;
+
+                if ($sectorId && !empty($data['subsector'])) {
+                    $subSector = \App\Models\SubSector::where('name', $data['subsector'])
+                        ->where('sector_id', $sectorId)
+                        ->first();
+                    $subSectorId = $subSector ? $subSector->id : null;
+                }
+            }
+
+            // Resolve location hierarchy IDs from names
+            $mainCommunityId = null;
+            $smallerCommunityId = null;
+            $suburbId = null;
+
+            if (!empty($data['location'])) {
+                $mainCommunity = \App\Models\Location::where('name', $data['location'])
+                    ->where('type', 'community')
+                    ->first();
+                $mainCommunityId = $mainCommunity ? $mainCommunity->id : null;
+
+                if ($mainCommunityId) {
+                    if (!empty($data['smaller_community'])) {
+                        $smallerCommunity = \App\Models\Location::where('name', $data['smaller_community'])
+                            ->where('parent_id', $mainCommunityId)
+                            ->where('type', 'smaller_community')
+                            ->first();
+                        $smallerCommunityId = $smallerCommunity ? $smallerCommunity->id : null;
+                    }
+
+                    if (!empty($data['suburb'])) {
+                        $suburb = \App\Models\Location::where('name', $data['suburb'])
+                            ->where('parent_id', $mainCommunityId)
+                            ->where('type', 'suburb')
+                            ->first();
+                        $suburbId = $suburb ? $suburb->id : null;
+                    }
+                }
             }
 
             $report = IssueReport::create([
@@ -801,10 +863,27 @@ class IssueReportController
                 'title' => $data['title'],
                 'description' => $enrichedDescription,
                 'category' => $data['category'] ?? null,
+                // Classification fields
+                'sector_id' => $sectorId,
+                'sub_sector_id' => $subSectorId,
+                'issue_type' => $data['issue_type'] ?? 'community_based',
+                'affected_people_count' => $data['people_affected'] ?? null,
                 'location' => $data['location'],
+                // Location hierarchy
+                'main_community_id' => $mainCommunityId,
+                'smaller_community_id' => $smallerCommunityId,
+                'suburb_id' => $suburbId,
+                'cottage_id' => null,
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
                 'images' => $imagesJson,
+                // Constituent information
+                'constituent_name' => $data['reporter_name'] ?? null,
+                'constituent_email' => $data['reporter_email'] ?? null,
+                'constituent_contact' => $data['reporter_phone'] ?? null,
+                'constituent_gender' => $data['reporter_gender'] ?? null,
+                'constituent_address' => $data['reporter_address'] ?? null,
+                // Legacy fields for backward compatibility
                 'reporter_name' => $data['reporter_name'] ?? null,
                 'reporter_email' => $data['reporter_email'] ?? null,
                 'reporter_phone' => $data['reporter_phone'] ?? null,

@@ -265,6 +265,36 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- Step 17b: Add legacy reporter_gender column
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'issue_reports' AND COLUMN_NAME = 'reporter_gender');
+SET @sql = IF(@col_exists = 0, 
+    'ALTER TABLE `issue_reports` ADD COLUMN `reporter_gender` VARCHAR(20) NULL',
+    'SELECT "reporter_gender column already exists"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Step 17c: Add legacy reporter_address column
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'issue_reports' AND COLUMN_NAME = 'reporter_address');
+SET @sql = IF(@col_exists = 0, 
+    'ALTER TABLE `issue_reports` ADD COLUMN `reporter_address` TEXT NULL',
+    'SELECT "reporter_address column already exists"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Step 17d: Add additional_notes column
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'issue_reports' AND COLUMN_NAME = 'additional_notes');
+SET @sql = IF(@col_exists = 0, 
+    'ALTER TABLE `issue_reports` ADD COLUMN `additional_notes` TEXT NULL',
+    'SELECT "additional_notes column already exists"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 -- Step 18: Add review tracking fields
 SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'issue_reports' AND COLUMN_NAME = 'reviewed_by_officer_id');

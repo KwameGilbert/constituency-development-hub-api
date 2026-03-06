@@ -10,6 +10,7 @@ use App\Models\Officer;
 use App\Helper\ResponseHelper;
 use App\Services\AuthService;
 use App\Services\UploadService;
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\QueryException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -399,6 +400,7 @@ class AgentController
             }
 
             $reports = $agent->submittedReports()
+                ->with(['sector', 'subSector', 'mainCommunity', 'smallerCommunity', 'suburb', 'cottage'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -461,33 +463,92 @@ class AgentController
                 }
             }
 
-            // Create the issue report
-            $issue = new \App\Models\IssueReport([
+            // Resolve sector and sub-sector IDs from names
+            $sectorId = null;
+            $subSectorId = null;
+            if (!empty($body['sector'])) {
+                $sector = \App\Models\Sector::where('name', $body['sector'])->first();
+                $sectorId = $sector ? $sector->id : null;
+
+                if ($sectorId && !empty($body['subsector'])) {
+                    $subSector = \App\Models\SubSector::where('name', $body['subsector'])
+                        ->where('sector_id', $sectorId)
+                        ->first();
+                    $subSectorId = $subSector ? $subSector->id : null;
+                }
+            }
+
+            // Resolve location hierarchy IDs from names
+            $mainCommunityId = null;
+            $smallerCommunityId = null;
+            $suburbId = null;
+
+            if (!empty($body['location'])) {
+                $mainCommunity = \App\Models\Location::where('name', $body['location'])
+                    ->where('type', 'community')
+                    ->first();
+                $mainCommunityId = $mainCommunity ? $mainCommunity->id : null;
+
+                if ($mainCommunityId) {
+                    if (!empty($body['smaller_community'])) {
+                        $smallerCommunity = \App\Models\Location::where('name', $body['smaller_community'])
+                            ->where('parent_id', $mainCommunityId)
+                            ->where('type', 'smaller_community')
+                            ->first();
+                        $smallerCommunityId = $smallerCommunity ? $smallerCommunity->id : null;
+                    }
+
+                    if (!empty($body['suburb'])) {
+                        $suburb = \App\Models\Location::where('name', $body['suburb'])
+                            ->where('parent_id', $mainCommunityId)
+                            ->where('type', 'suburb')
+                            ->first();
+                        $suburbId = $suburb ? $suburb->id : null;
+                    }
+                }
+            }
+
+            // Build payload with modern + legacy keys, then keep only columns that exist.
+            $payload = [
                 'title' => $body['title'],
                 'description' => $body['description'],
                 'category' => $body['category'],
-                'type' => $body['type'] ?? 'community',
+                'issue_type' => $body['issue_type'] ?? ($body['type'] ?? 'community_based'),
+                'type' => $body['type'] ?? ($body['issue_type'] ?? 'community_based'),
                 'priority' => $body['priority'],
                 'location' => $body['location'],
+                'main_community_id' => $mainCommunityId,
+                'smaller_community_id' => $smallerCommunityId,
                 'smaller_community' => $body['smaller_community'] ?? null,
+                'suburb_id' => $suburbId,
                 'suburb' => $body['suburb'] ?? null,
+                'cottage_id' => null,
                 'cottage' => $body['cottage'] ?? null,
                 'latitude' => $body['latitude'] ?? null,
                 'longitude' => $body['longitude'] ?? null,
+                'sector_id' => $sectorId,
                 'sector' => $body['sector'] ?? null,
+                'sub_sector_id' => $subSectorId,
                 'subsector' => $body['subsector'] ?? null,
+                'affected_people_count' => $body['people_affected'] ?? null,
                 'people_affected' => $body['people_affected'] ?? null,
-                'estimated_budget' => $body['estimated_budget'] ?? null,
                 'additional_notes' => $body['additional_notes'] ?? null,
                 'reporter_name' => $body['reporter_name'] ?? null,
                 'reporter_phone' => $body['reporter_phone'] ?? null,
                 'reporter_email' => $body['reporter_email'] ?? null,
                 'reporter_gender' => $body['reporter_gender'] ?? null,
                 'reporter_address' => $body['reporter_address'] ?? null,
+                'constituent_name' => $body['reporter_name'] ?? null,
+                'constituent_contact' => $body['reporter_phone'] ?? null,
+                'constituent_email' => $body['reporter_email'] ?? null,
+                'constituent_gender' => $body['reporter_gender'] ?? null,
+                'constituent_address' => $body['reporter_address'] ?? null,
                 'submitted_by_agent_id' => $agent->id,
                 'status' => 'submitted',
                 'case_id' => 'ISS-' . strtoupper(uniqid()),
-            ]);
+            ];
+
+            $issue = new \App\Models\IssueReport($this->filterIssueReportPayload($payload));
 
             $issue->save();
 
@@ -517,7 +578,16 @@ class AgentController
             }
 
             $issueId = (int) $args['id'];
-            $issue = \App\Models\IssueReport::with(['assignedOfficer.user', 'assignedTaskForce'])
+            $issue = \App\Models\IssueReport::with([
+                    'assignedOfficer.user',
+                    'assignedTaskForce',
+                    'sector',
+                    'subSector',
+                    'mainCommunity',
+                    'smallerCommunity',
+                    'suburb',
+                    'cottage',
+                ])
                 ->where('id', $issueId)
                 ->where('submitted_by_agent_id', $agent->id)
                 ->first();
@@ -526,8 +596,62 @@ class AgentController
                 return ResponseHelper::error($response, 'Issue not found or access denied', 404);
             }
 
+            $issueData = $issue->toFullArray();
+
+            // Normalize detail payload for the agent issue view endpoint.
+            $issueData['type'] = $issueData['type'] ?? $issueData['issue_type'] ?? null;
+            $issueData['issue_type'] = $issueData['issue_type'] ?? $issueData['type'] ?? null;
+            $issueData['sector'] = $issueData['sector'] ?? $issue->sector?->name ?? null;
+            $issueData['subsector'] = $issueData['subsector'] ?? $issue->subSector?->name ?? null;
+
+            $issueData['location'] = $issueData['location'] ?? $issue->mainCommunity?->name ?? $issue->location;
+            $issueData['smaller_community'] = $issueData['smaller_community'] ?? $issue->smallerCommunity?->name ?? null;
+            $issueData['suburb'] = $issueData['suburb'] ?? $issue->suburb?->name ?? null;
+            $issueData['cottage'] = $issueData['cottage'] ?? $issue->cottage?->name ?? null;
+
+            $issueData['reporter_name'] = $issueData['reporter_name'] ?? $issue->constituent_name ?? null;
+            $issueData['reporter_phone'] = $issueData['reporter_phone'] ?? $issue->constituent_contact ?? null;
+            $issueData['reporter_email'] = $issueData['reporter_email'] ?? $issue->constituent_email ?? null;
+            $issueData['reporter_gender'] = $issueData['reporter_gender']
+                ?? $issue->constituent_gender
+                ?? $issue->getAttribute('reporter_gender')
+                ?? null;
+            $issueData['reporter_address'] = $issueData['reporter_address']
+                ?? $issue->constituent_address
+                ?? $issue->getAttribute('reporter_address')
+                ?? null;
+
+            $issueData['people_affected'] = $issueData['people_affected'] ?? $issue->affected_people_count ?? null;
+
+            // Parse legacy metadata from description when old records stored values there.
+            $descriptionText = is_string($issue->description)
+                ? strip_tags((string) preg_replace('/<br\s*\/?\>/i', "\n", $issue->description))
+                : '';
+
+            $extractLegacyValue = static function (?string $text, string $label): ?string {
+                if (!$text) {
+                    return null;
+                }
+
+                $pattern = '/' . preg_quote($label, '/') . '\\s*:\\s*([^\\r\\n]+)/i';
+                if (!preg_match($pattern, $text, $matches)) {
+                    return null;
+                }
+
+                $value = trim($matches[1]);
+                return $value !== '' ? $value : null;
+            };
+
+            $issueData['type'] = $issueData['type'] ?? $extractLegacyValue($descriptionText, 'Issue Type');
+            $issueData['issue_type'] = $issueData['issue_type'] ?? $issueData['type'];
+            $issueData['sector'] = $issueData['sector'] ?? $extractLegacyValue($descriptionText, 'Sector');
+            $issueData['subsector'] = $issueData['subsector'] ?? $extractLegacyValue($descriptionText, 'Subsector');
+            $issueData['reporter_gender'] = $issueData['reporter_gender'] ?? $extractLegacyValue($descriptionText, 'Gender');
+            $issueData['reporter_address'] = $issueData['reporter_address'] ?? $extractLegacyValue($descriptionText, 'Address');
+            $issueData['people_affected'] = $issueData['people_affected'] ?? $extractLegacyValue($descriptionText, 'People Affected');
+
             return ResponseHelper::success($response, 'Issue fetched successfully', [
-                'issue' => $issue->toFullArray(),
+                'issue' => $issueData,
             ]);
         } catch (Exception $e) {
             return ResponseHelper::error($response, 'Failed to fetch issue', 500, $e->getMessage());
@@ -639,6 +763,31 @@ class AgentController
     {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
         return substr(str_shuffle($chars), 0, $length);
+    }
+
+    /**
+     * Keep only columns that exist in the current DB schema.
+     * This supports both legacy and migrated issue_reports tables.
+     */
+    private function filterIssueReportPayload(array $payload): array
+    {
+        static $columns = null;
+
+        if ($columns === null) {
+            try {
+                $columns = Capsule::schema()->getColumnListing('issue_reports');
+            } catch (\Throwable $e) {
+                // Fallback: keep payload unchanged if schema inspection fails.
+                return $payload;
+            }
+        }
+
+        $allowed = array_flip($columns);
+        return array_filter(
+            $payload,
+            static fn($key) => isset($allowed[$key]),
+            ARRAY_FILTER_USE_KEY,
+        );
     }
 }
 

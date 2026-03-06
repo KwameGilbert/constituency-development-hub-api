@@ -232,7 +232,7 @@ class UserController
     {
         try {
             $id = $args['id'];
-            $data = $request->getParsedBody();
+            $data = $request->getParsedBody() ?? [];
             $requestUser = $request->getAttribute('user');
 
             $user = User::find($id);
@@ -241,8 +241,39 @@ class UserController
                 return ResponseHelper::error($response, 'User not found', 404);
             }
 
+            // Validate and normalize optional email update
+            if (isset($data['email'])) {
+                $email = trim((string)$data['email']);
+
+                if ($email === '') {
+                    return ResponseHelper::error($response, 'Email cannot be empty', 400);
+                }
+
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    return ResponseHelper::error($response, 'Invalid email format', 400);
+                }
+
+                if (User::emailExists($email, (int)$user->id)) {
+                    return ResponseHelper::error($response, 'Email already exists', 409);
+                }
+
+                $data['email'] = $email;
+            }
+
+            // Validate optional password update
+            if (array_key_exists('password', $data)) {
+                $password = (string)$data['password'];
+
+                // Ignore empty password values from forms that leave it blank
+                if ($password === '') {
+                    unset($data['password']);
+                } elseif (strlen($password) < 8) {
+                    return ResponseHelper::error($response, 'Password must be at least 8 characters', 400);
+                }
+            }
+
             // Allowed fields for update
-            $allowedFields = ['name', 'phone', 'location', 'bio'];
+            $allowedFields = ['name', 'email', 'password', 'phone', 'location', 'bio'];
             $updateData = [];
 
             foreach ($allowedFields as $field) {

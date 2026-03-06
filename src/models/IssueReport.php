@@ -105,6 +105,9 @@ class IssueReport extends Model
         'reporter_name',
         'reporter_email',
         'reporter_phone',
+        'reporter_gender',
+        'reporter_address',
+        'additional_notes',
         'submitted_by_agent_id',
         'submitted_by_officer_id',
         'assigned_officer_id',
@@ -498,14 +501,47 @@ class IssueReport extends Model
 
     public function toPublicArray(): array
     {
+        $sectorName = $this->relationLoaded('sector')
+            ? ($this->sector?->name)
+            : ($this->sector?->name);
+        $subSectorName = $this->relationLoaded('subSector')
+            ? ($this->subSector?->name)
+            : ($this->subSector?->name);
+        $mainCommunityName = $this->relationLoaded('mainCommunity')
+            ? ($this->mainCommunity?->name)
+            : ($this->mainCommunity?->name);
+        $smallerCommunityName = $this->relationLoaded('smallerCommunity')
+            ? ($this->smallerCommunity?->name)
+            : ($this->smallerCommunity?->name);
+        $suburbName = $this->relationLoaded('suburb')
+            ? ($this->suburb?->name)
+            : ($this->suburb?->name);
+        $cottageName = $this->relationLoaded('cottage')
+            ? ($this->cottage?->name)
+            : ($this->cottage?->name);
+
         return [
             'id' => $this->id,
             'case_id' => $this->case_id,
             'title' => $this->title,
             'description' => $this->description,
             'category' => $this->category,
-            'location' => $this->location,
+            'type' => $this->getAttribute('type') ?? $this->issue_type,
+            'issue_type' => $this->issue_type ?? $this->getAttribute('type'),
+            'sector' => $sectorName,
+            'subsector' => $subSectorName,
+            'people_affected' => $this->affected_people_count,
+            'additional_notes' => $this->getAttribute('additional_notes'),
+            'location' => $mainCommunityName ?: $this->location,
+            'smaller_community' => $smallerCommunityName,
+            'suburb' => $suburbName,
+            'cottage' => $cottageName,
             'images' => $this->images,
+            'reporter_name' => $this->reporter_name ?: $this->constituent_name,
+            'reporter_phone' => $this->reporter_phone ?: $this->constituent_contact,
+            'reporter_email' => $this->reporter_email ?: $this->constituent_email,
+            'reporter_gender' => $this->constituent_gender ?: $this->getAttribute('reporter_gender'),
+            'reporter_address' => $this->constituent_address ?: $this->getAttribute('reporter_address'),
             'status' => $this->status,
             'priority' => $this->priority,
             'acknowledged_at' => $this->acknowledged_at?->toDateTimeString(),

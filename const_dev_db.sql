@@ -469,7 +469,27 @@ CREATE TABLE `issue_reports` (
   `resolved_by` int(11) UNSIGNED DEFAULT NULL COMMENT 'Officer/Agent who resolved',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `sub_sector_id` int(11) UNSIGNED DEFAULT NULL
+  `sector_id` int(11) UNSIGNED DEFAULT NULL,
+  `sub_sector_id` int(11) UNSIGNED DEFAULT NULL,
+  `issue_type` varchar(100) DEFAULT NULL,
+  `affected_people_count` int(11) DEFAULT NULL,
+  `main_community_id` int(11) UNSIGNED DEFAULT NULL,
+  `smaller_community_id` int(11) UNSIGNED DEFAULT NULL,
+  `suburb_id` int(11) UNSIGNED DEFAULT NULL,
+  `cottage_id` int(11) UNSIGNED DEFAULT NULL,
+  `constituent_name` varchar(255) DEFAULT NULL,
+  `constituent_email` varchar(255) DEFAULT NULL,
+  `constituent_contact` varchar(50) DEFAULT NULL,
+  `constituent_gender` varchar(20) DEFAULT NULL,
+  `constituent_address` text DEFAULT NULL,
+  `reporter_gender` varchar(20) DEFAULT NULL,
+  `reporter_address` text DEFAULT NULL,
+  `additional_notes` text DEFAULT NULL,
+  `reviewed_by_officer_id` int(11) UNSIGNED DEFAULT NULL,
+  `reviewed_at` timestamp NULL DEFAULT NULL,
+  `assessment_reviewed_by` int(11) UNSIGNED DEFAULT NULL,
+  `assessment_reviewed_at` timestamp NULL DEFAULT NULL,
+  `assessment_decision` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
