@@ -501,24 +501,12 @@ class IssueReport extends Model
 
     public function toPublicArray(): array
     {
-        $sectorName = $this->relationLoaded('sector')
-            ? ($this->sector?->name)
-            : ($this->sector?->name);
-        $subSectorName = $this->relationLoaded('subSector')
-            ? ($this->subSector?->name)
-            : ($this->subSector?->name);
-        $mainCommunityName = $this->relationLoaded('mainCommunity')
-            ? ($this->mainCommunity?->name)
-            : ($this->mainCommunity?->name);
-        $smallerCommunityName = $this->relationLoaded('smallerCommunity')
-            ? ($this->smallerCommunity?->name)
-            : ($this->smallerCommunity?->name);
-        $suburbName = $this->relationLoaded('suburb')
-            ? ($this->suburb?->name)
-            : ($this->suburb?->name);
-        $cottageName = $this->relationLoaded('cottage')
-            ? ($this->cottage?->name)
-            : ($this->cottage?->name);
+        $sectorName = $this->sector?->name ?: $this->getAttribute('sector');
+        $subSectorName = $this->subSector?->name ?: $this->getAttribute('subsector');
+        $mainCommunityName = $this->mainCommunity?->name ?: $this->getAttribute('location');
+        $smallerCommunityName = $this->smallerCommunity?->name ?: $this->getAttribute('smaller_community');
+        $suburbName = $this->suburb?->name ?: $this->getAttribute('suburb');
+        $cottageName = $this->cottage?->name ?: $this->getAttribute('cottage');
 
         return [
             'id' => $this->id,
@@ -560,6 +548,16 @@ class IssueReport extends Model
         $data['assigned_to_task_force_at'] = $this->assigned_to_task_force_at?->toDateTimeString();
         $data['resources_allocated_at'] = $this->resources_allocated_at?->toDateTimeString();
         
+        if ($this->assignedOfficer) {
+            $data['assigned_officer'] = [
+                'id' => $this->assignedOfficer->id,
+                'user' => [
+                    'name' => $this->assignedOfficer->user?->name,
+                    'email' => $this->assignedOfficer->user?->email,
+                ]
+            ];
+        }
+
         if ($this->assignedTaskForce) {
             $data['assigned_task_force'] = $this->assignedTaskForce->getPublicProfile();
         }

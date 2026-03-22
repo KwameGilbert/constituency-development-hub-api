@@ -98,8 +98,13 @@ class BlogPostController
                 return ResponseHelper::error($response, 'Blog post not found', 404);
             }
 
-            // Increment views
-            $post->incrementViews();
+            // Increment views (wrapped in try-catch to prevent crashing if DB is read-only)
+            try {
+                $post->incrementViews();
+            } catch (Exception $e) {
+                // Log error but continue
+                error_log("Failed to increment blog post views for slug '{$args['slug']}': " . $e->getMessage());
+            }
 
             return ResponseHelper::success($response, 'Blog post fetched successfully', [
                 'post' => $post->toPublicArray()

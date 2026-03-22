@@ -147,9 +147,9 @@ class BlogPost extends Model
             'image' => $this->image,
             'author' => $this->author,
             'category' => $this->category,
-            'tags' => $this->tags,
+            'tags' => is_string($this->tags) ? json_decode($this->tags, true) : ($this->tags ?? []),
             'is_featured' => $this->is_featured,
-            'views' => $this->views,
+            'views' => (int)($this->views ?? 0),
             'published_at' => $this->published_at?->toDateTimeString(),
             'created_at' => $this->created_at?->toDateTimeString(),
         ];

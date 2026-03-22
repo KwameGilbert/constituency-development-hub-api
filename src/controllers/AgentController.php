@@ -598,58 +598,6 @@ class AgentController
 
             $issueData = $issue->toFullArray();
 
-            // Normalize detail payload for the agent issue view endpoint.
-            $issueData['type'] = $issueData['type'] ?? $issueData['issue_type'] ?? null;
-            $issueData['issue_type'] = $issueData['issue_type'] ?? $issueData['type'] ?? null;
-            $issueData['sector'] = $issueData['sector'] ?? $issue->sector?->name ?? null;
-            $issueData['subsector'] = $issueData['subsector'] ?? $issue->subSector?->name ?? null;
-
-            $issueData['location'] = $issueData['location'] ?? $issue->mainCommunity?->name ?? $issue->location;
-            $issueData['smaller_community'] = $issueData['smaller_community'] ?? $issue->smallerCommunity?->name ?? null;
-            $issueData['suburb'] = $issueData['suburb'] ?? $issue->suburb?->name ?? null;
-            $issueData['cottage'] = $issueData['cottage'] ?? $issue->cottage?->name ?? null;
-
-            $issueData['reporter_name'] = $issueData['reporter_name'] ?? $issue->constituent_name ?? null;
-            $issueData['reporter_phone'] = $issueData['reporter_phone'] ?? $issue->constituent_contact ?? null;
-            $issueData['reporter_email'] = $issueData['reporter_email'] ?? $issue->constituent_email ?? null;
-            $issueData['reporter_gender'] = $issueData['reporter_gender']
-                ?? $issue->constituent_gender
-                ?? $issue->getAttribute('reporter_gender')
-                ?? null;
-            $issueData['reporter_address'] = $issueData['reporter_address']
-                ?? $issue->constituent_address
-                ?? $issue->getAttribute('reporter_address')
-                ?? null;
-
-            $issueData['people_affected'] = $issueData['people_affected'] ?? $issue->affected_people_count ?? null;
-
-            // Parse legacy metadata from description when old records stored values there.
-            $descriptionText = is_string($issue->description)
-                ? strip_tags((string) preg_replace('/<br\s*\/?\>/i', "\n", $issue->description))
-                : '';
-
-            $extractLegacyValue = static function (?string $text, string $label): ?string {
-                if (!$text) {
-                    return null;
-                }
-
-                $pattern = '/' . preg_quote($label, '/') . '\\s*:\\s*([^\\r\\n]+)/i';
-                if (!preg_match($pattern, $text, $matches)) {
-                    return null;
-                }
-
-                $value = trim($matches[1]);
-                return $value !== '' ? $value : null;
-            };
-
-            $issueData['type'] = $issueData['type'] ?? $extractLegacyValue($descriptionText, 'Issue Type');
-            $issueData['issue_type'] = $issueData['issue_type'] ?? $issueData['type'];
-            $issueData['sector'] = $issueData['sector'] ?? $extractLegacyValue($descriptionText, 'Sector');
-            $issueData['subsector'] = $issueData['subsector'] ?? $extractLegacyValue($descriptionText, 'Subsector');
-            $issueData['reporter_gender'] = $issueData['reporter_gender'] ?? $extractLegacyValue($descriptionText, 'Gender');
-            $issueData['reporter_address'] = $issueData['reporter_address'] ?? $extractLegacyValue($descriptionText, 'Address');
-            $issueData['people_affected'] = $issueData['people_affected'] ?? $extractLegacyValue($descriptionText, 'People Affected');
-
             return ResponseHelper::success($response, 'Issue fetched successfully', [
                 'issue' => $issueData,
             ]);
