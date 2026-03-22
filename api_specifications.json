@@ -99,6 +99,20 @@
         "DELETE /{id} - Delete idea (admin)",
         "POST /{id}/status - Change idea status (admin)"
       ]
+    },
+    "projects": {
+      "base_path": "/v1/projects",
+      "endpoints": [
+        "GET /public - List active projects (public)",
+        "GET /featured - Get featured projects (public)",
+        "GET /stats - Get project statistics (public)",
+        "GET /{slug} - Get single project by slug (public)",
+        "GET /admin - List all projects (admin)",
+        "GET /admin/{id} - Get single project by ID (admin)",
+        "POST /admin - Create new project (admin)",
+        "PUT /admin/{id} - Update project (admin)",
+        "DELETE /admin/{id} - Delete project (admin)"
+      ]
     }
   },
   "missing_api_categories": [

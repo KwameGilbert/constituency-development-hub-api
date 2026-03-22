@@ -221,17 +221,20 @@ class ProjectController
                 }
             }
 
-            // Handle gallery images upload
-            $galleryUrls = $data['gallery'] ?? null;
+            // Handle gallery images
+            $galleryUrls = $data['gallery'] ?? [];
+            if (!is_array($galleryUrls)) {
+                $galleryUrls = is_string($galleryUrls) ? json_decode($galleryUrls, true) : [];
+            }
+            
             $galleryFiles = $uploadedFiles['gallery'] ?? [];
             if (!empty($galleryFiles) && is_array($galleryFiles)) {
                 try {
                     $uploadedGallery = $this->uploadService->uploadMultipleFiles($galleryFiles, 'image', 'projects/gallery');
                     if (!empty($uploadedGallery)) {
-                        $galleryUrls = json_encode($uploadedGallery);
+                        $galleryUrls = array_merge($galleryUrls, $uploadedGallery);
                     }
                 } catch (Exception $e) {
-                    // Log but don't fail the whole request
                     error_log('Gallery upload failed: ' . $e->getMessage());
                 }
             }
@@ -304,16 +307,18 @@ class ProjectController
                 }
             }
 
-            // Handle gallery images upload (append to existing)
-            $galleryUrls = $data['gallery'] ?? $project->gallery;
+            // Handle gallery images (default to what's in request body, fallback to existing)
+            $galleryUrls = $data['gallery'] ?? $project->gallery ?? [];
+            if (!is_array($galleryUrls)) {
+                $galleryUrls = is_string($galleryUrls) ? json_decode($galleryUrls, true) : [];
+            }
+
             $galleryFiles = $uploadedFiles['gallery'] ?? [];
             if (!empty($galleryFiles) && is_array($galleryFiles)) {
                 try {
                     $uploadedGallery = $this->uploadService->uploadMultipleFiles($galleryFiles, 'image', 'projects/gallery');
                     if (!empty($uploadedGallery)) {
-                        // Merge with existing gallery
-                        $existingGallery = is_string($project->gallery) ? json_decode($project->gallery, true) : [];
-                        $galleryUrls = json_encode(array_merge($existingGallery ?: [], $uploadedGallery));
+                        $galleryUrls = array_merge($galleryUrls, $uploadedGallery);
                     }
                 } catch (Exception $e) {
                     error_log('Gallery upload failed: ' . $e->getMessage());
