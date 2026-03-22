@@ -19,12 +19,8 @@ class CreateTestAgentUser extends AbstractSeed
             return;
         }
 
-        // Hash password with Argon2id (same as User model)
-        $passwordHash = password_hash('Agent@123', PASSWORD_ARGON2ID, [
-            'memory_cost' => 65536,  // 64 MB
-            'time_cost' => 4,        // 4 iterations
-            'threads' => 2           // 2 parallel threads
-        ]);
+        // Hash password with Bcrypt (same as User model)
+        $passwordHash = password_hash('Agent@123', PASSWORD_DEFAULT);
 
         // Insert agent user
         $userData = [

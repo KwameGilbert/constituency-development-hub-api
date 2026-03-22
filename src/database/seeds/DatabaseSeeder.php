@@ -36,11 +36,7 @@ class DatabaseSeeder extends AbstractSeed
 
     private function hashPassword(string $password): string
     {
-        return password_hash($password, PASSWORD_ARGON2ID, [
-            'memory_cost' => 65536,
-            'time_cost' => 4,
-            'threads' => 2
-        ]);
+        return password_hash($password, PASSWORD_DEFAULT);
     }
 
     private function seedUsers(): void

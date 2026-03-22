@@ -116,7 +116,7 @@ class User extends Model
      */
 
     /**
-     * Auto-hash password with Argon2id on set.
+     * Auto-hash password with Bcrypt on set.
      * @param string $value
      * @return void
      */
@@ -126,12 +126,8 @@ class User extends Model
         if (preg_match('/^(\$argon2|\$2y\$)/', $value)) {
             $this->attributes['password'] = $value;
         } else {
-            // Hash with Argon2id
-            $this->attributes['password'] = password_hash($value, PASSWORD_ARGON2ID, [
-                'memory_cost' => 65536,  // 64 MB
-                'time_cost' => 4,        // 4 iterations
-                'threads' => 2           // 2 parallel threads
-            ]);
+            // Hash with Bcrypt (PHP Default)
+            $this->attributes['password'] = password_hash($value, PASSWORD_DEFAULT);
         }
     }
 

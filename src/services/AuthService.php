@@ -134,18 +134,14 @@ class AuthService
     }
 
     /**
-     * Hash password using Argon2id
+     * Hash password using standard PHP default (Bcrypt)
      *
      * @param string $password Plain text password
      * @return string Hashed password
      */
     public function hashPassword(string $password): string
     {
-        return password_hash($password, PASSWORD_ARGON2ID, [
-            'memory_cost' => 65536,  // 64 MB
-            'time_cost' => 4,         // 4 iterations
-            'threads' => 2            // 2 parallel threads
-        ]);
+        return password_hash($password, PASSWORD_DEFAULT);
     }
 
     /**
