@@ -66,11 +66,11 @@ class DashboardController
 
             // Issues by status
             $issuesByStatus = [
-                'pending_review' => IssueReport::where('status', 'pending_review')->count(),
-                'assigned' => IssueReport::where('status', 'assigned')->count(),
-                'in_progress' => IssueReport::where('status', 'in_progress')->count(),
-                'resolved' => IssueReport::where('status', 'resolved')->count(),
-                'closed' => IssueReport::where('status', 'closed')->count(),
+                'pending_review' => IssueReport::where('status', IssueReport::STATUS_UNDER_OFFICER_REVIEW)->count(),
+                'assigned' => IssueReport::where('status', IssueReport::STATUS_ASSIGNED_TO_TASK_FORCE)->count(),
+                'in_progress' => IssueReport::where('status', IssueReport::STATUS_RESOLUTION_IN_PROGRESS)->count(),
+                'resolved' => IssueReport::where('status', IssueReport::STATUS_RESOLVED)->count(),
+                'closed' => IssueReport::where('status', IssueReport::STATUS_CLOSED)->count(),
             ];
 
             // Projects by status

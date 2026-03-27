@@ -208,7 +208,7 @@ class AdminDataController
             $topPerformers = $topAgents->map(function ($agent, $index) {
                 $total = $agent->reports_submitted ?? 0;
                 $resolved = IssueReport::where('submitted_by_agent_id', $agent->id)
-                    ->where('status', 'resolved')
+                    ->where('status', IssueReport::STATUS_RESOLVED)
                     ->count();
                 
                 return [
@@ -224,7 +224,7 @@ class AdminDataController
 
             // Community insights by location
             $locationStats = IssueReport::selectRaw('location, COUNT(*) as total, 
-                SUM(CASE WHEN status = "resolved" THEN 1 ELSE 0 END) as resolved')
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as resolved', [IssueReport::STATUS_RESOLVED])
                 ->groupBy('location')
                 ->orderBy('total', 'desc')
                 ->limit(5)
@@ -527,7 +527,7 @@ class AdminDataController
         try {
             // Summary metrics
             $totalIssues = IssueReport::count();
-            $pendingReview = IssueReport::whereIn('status', ['pending', 'pending_review'])->count();
+            $pendingReview = IssueReport::whereIn('status', [IssueReport::STATUS_SUBMITTED, IssueReport::STATUS_UNDER_OFFICER_REVIEW])->count();
             $activeUsers = User::where('status', 'active')->count();
             $totalUsers = User::count();
             $totalProjects = Project::count();

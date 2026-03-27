@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Phinx\Migration\AbstractMigration;
 
-final class AddGalleryToProjectsTable extends AbstractMigration
+final class AddGalleryToProjects extends AbstractMigration
 {
     /**
      * Change Method.
